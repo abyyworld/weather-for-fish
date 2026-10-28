@@ -562,3 +562,37 @@ h1 { font-size: clamp(1.7rem, 4.2vw, 2.6rem); font-weight: 900; letter-spacing: 
 .nr-ticker { background: #ffd166; color: #2b1700; font-weight: 900; white-space: nowrap; overflow: hidden; padding: 10px 0; font-size: 1.05rem; }
 .nr-ticker-track { display: inline-block; padding-left: 100%; animation: ticker 40s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .nr-rays, .nr-fish, .nr-ticker-track, .nr-live { animation: none !important; } }
+
+/* ------------------------------------------------------------ opening titles */
+.intro {
+  position: fixed; inset: 0; z-index: 5000; display: grid; place-items: center; align-content: center; gap: 4px;
+  background: radial-gradient(80% 60% at 50% 40%, #0f7090, #062a45 60%, #020d1a); cursor: pointer;
+  transition: transform 0.85s cubic-bezier(0.7, 0, 0.3, 1), opacity 0.85s;
+}
+.intro.lift { transform: translateY(-105%); opacity: 0.6; }
+.intro-fish { width: min(300px, 60vw); transform: translateX(-120vw); }
+.intro-fish svg { width: 100%; height: auto; display: block; }
+.intro.play .intro-fish { animation: intro-swim 1.2s cubic-bezier(0.2, 0.9, 0.3, 1.05) forwards, bob 2.4s ease-in-out 1.2s infinite; }
+@keyframes intro-swim { 0% { transform: translateX(-120vw) rotate(-8deg); } 70% { transform: translateX(4vw) rotate(4deg); } 100% { transform: none; } }
+.intro-title { font-size: clamp(2.4rem, 7vw, 5rem); font-weight: 900; color: #fff; text-shadow: 0 6px 0 rgba(0, 30, 50, 0.5); white-space: nowrap; }
+.intro-title span { display: inline-block; opacity: 0; transform: translateY(40px) scale(0.3); }
+.intro.play .intro-title span { animation: letter-bubble 0.55s cubic-bezier(0.3, 1.6, 0.5, 1) forwards; }
+@keyframes letter-bubble { to { opacity: 1; transform: none; } }
+.intro-sub { margin: 0; font-weight: 800; color: var(--ink-2); font-size: clamp(1rem, 2vw, 1.3rem); opacity: 0; }
+.intro.play .intro-sub { animation: fade-in 0.6s ease 1.5s forwards; }
+@keyframes fade-in { to { opacity: 1; } }
+
+/* ---------------------------------------------------------------- pet fish */
+.pet-fish { position: fixed; left: 0; top: 0; width: 48px; z-index: 3500; pointer-events: none; opacity: 0; transition: opacity 0.3s; will-change: transform; filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.4)); }
+.pet-fish svg { width: 100%; height: auto; display: block; }
+
+/* ------------------------------------------------------- the water surface */
+.surface {
+  position: absolute; left: 0; right: 0; top: 0; height: 26px; z-index: 0; pointer-events: none; opacity: 0.55;
+  background:
+    radial-gradient(40px 14px at 20px 0, rgba(200, 245, 255, 0.55), transparent 70%) repeat-x 0 0 / 80px 26px,
+    radial-gradient(60px 18px at 30px 0, rgba(255, 255, 255, 0.25), transparent 70%) repeat-x 0 0 / 120px 26px;
+  animation: surface 7s linear infinite;
+}
+@keyframes surface { to { background-position: 160px 0, -240px 0; } }
+@media (prefers-reduced-motion: reduce) { .surface { animation: none; } }

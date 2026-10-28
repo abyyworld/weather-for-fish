@@ -24,7 +24,7 @@ It's a joke played completely straight. Underneath, every number comes from live
 ### Tests
 
 ```bash
-npm test            # forecast maths, node:test (29 tests, no dependencies)
+npm test            # forecast maths, node:test (31 tests, no dependencies)
 npm run test:e2e    # full app in Chromium via Playwright, from file://, all APIs mocked
 ```
 
@@ -52,8 +52,11 @@ So we built the weather app for fish. Fish can't use it. But every number on it 
 | 🎣 **Hook Danger** | Are the humans coming? | Weekend, dawn/dusk, calm, dry, pleasant, falling barometer |
 | 🪱 **Snack Index** | Is there food? | Rain washing worms in, dusk insect hatches, moon phase, solunar periods |
 | 🌙 **Solunar Tables** | When to feed | John Alden Knight's 1926 theory, computed from the moon's actual position |
+| 📻 **The Shipping Forecast** | BBC Radio 4 style, "issued by the Fish Office on behalf of the Maritime and Codguard Agency", preceded by the six Greenwich pips | Real Beaufort force, WMO sea state and the official visibility terms, in the traditional order. Plus "Predators: heron, occasionally cormorant" |
+| 🔮 **Ichthyomancy** | A horoscope for fish | The Moon's actual zodiac sign, from its ecliptic longitude |
+| 📜 **Angler's folklore** | "When the wind is in the west, then the fishes bite the best" | The 400-year-old rhyme matched to the real wind direction, plus tonight's plankton elevator (diel vertical migration, the largest migration on Earth by biomass) |
 | 📅 **72-hour timeline** | Best time to swim each day, overall grade A–F | All of the above, hour by hour |
-| 📺 **Fish News** | The most important thing, read aloud | Priority: salt water → oxygen → predators → fishermen → temperature → "Conditions are great, go be a fish." Always ends with "Blub." |
+| 📺 **Fish News** | The most important thing, read aloud in a full-screen **Breaking Fish News** broadcast with live subtitles and a mouth that moves with each word | Priority: salt water → oxygen → predators → fishermen → temperature → "Conditions are great, go be a fish." Always ends with "Blub." |
 
 ## The science (for the judges)
 
@@ -71,8 +74,10 @@ So we built the weather app for fish. Fish can't use it. But every number on it 
 2. **(0:20) The anchor reads the forecast.** Click **🔊 Read it to me.** Finn Gillespie, Fish News Channel 0, reads the most important alert first, in a high, bubbly voice. It ends with "Blub."
 3. **(0:45) Predator radar.** Scroll to the radar as it sweeps and lights up real herons, cormorants, seals (whatever was actually seen nearby this week). Click a blip: real photo, date, distance, bearing, and a fish-facing warning. *"Heron: stands perfectly still for 20 minutes. Do not trust the statue."*
 4. **(1:10) Switch Trout to Clownfish.** The water goes from *Perfect* to *Brisk*, the grade drops, and if you're on a lake the anchor declares an osmotic emergency.
-5. **(1:30) The esoteric part.** Scroll to the Solunar Tables: John Alden Knight's 1926 theory of fish feeding times, computed from the moon's real position, with total seriousness.
+5. **(1:25) The esoteric part.** Scroll to the Solunar Tables: John Alden Knight's 1926 theory of fish feeding times, computed from the moon's real position, with total seriousness. Then the Esoteric Almanac: press **📻 Read the Shipping Forecast**. The six pips play, then a calm voice reads *"…issued by the Fish Office on behalf of the Maritime and Codguard Agency… Predators: heron, occasionally cormorant."* Point at the moon's zodiac sign in **Ichthyomancy**.
 6. **(1:50) Close:** *"Fish can't use this. But every number on screen is real."*
+
+Extras for the Q&A: turn on **🔊 Sonar** on the radar; move the mouse (a pet fish of your chosen species follows it); try the Great Barrier Reef as a Clownfish (finally an A) and Brooks Falls as a Salmon (brown bears).
 
 If the Wi-Fi dies, press **🎬 Demo mode** (or open `index.html?demo`). Everything, including the radar, runs from the bundled snapshot.
 

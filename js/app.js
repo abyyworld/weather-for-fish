@@ -181,6 +181,55 @@
     }, { passive: true });
   }
 
+  // Opening titles: your fish swims in, the title bubbles up, the curtain of water lifts.
+  function initIntro() {
+    var el = $('intro');
+    if (REDUCED || navigator.webdriver || /[?&]nointro/.test(location.search)) { el.remove(); return; }
+    $('introFish').innerHTML = FishArt.svg(sp());
+    var title = $('introTitle');
+    title.innerHTML = title.textContent.split('').map(function (ch, i) {
+      return '<span style="animation-delay:' + (0.45 + i * 0.05).toFixed(2) + 's">' + (ch === ' ' ? '&nbsp;' : esc(ch)) + '</span>';
+    }).join('');
+    el.classList.add('play');
+    var done = function () {
+      if (!el.parentNode) return;
+      el.classList.add('lift');
+      setTimeout(function () { el.remove(); }, 900);
+    };
+    setTimeout(done, 2600);
+    el.addEventListener('click', done);
+    document.addEventListener('keydown', done, { once: true });
+  }
+
+  // A pet fish follows the pointer, turning to face where it is going.
+  function initPetFish() {
+    var el = $('petFish');
+    if (REDUCED || !window.matchMedia('(pointer: fine)').matches) { el.remove(); return; }
+    var x = -100, y = -100, tx = -100, ty = -100, face = 1, seen = false, lastBubble = 0;
+    el.innerHTML = FishArt.svg(sp());
+    document.addEventListener('pointermove', function (e) { tx = e.clientX + 18; ty = e.clientY + 14; if (!seen) { seen = true; x = tx - 80; y = ty; el.style.opacity = 1; } }, { passive: true });
+    document.addEventListener('pointerleave', function () { el.style.opacity = 0; seen = false; });
+    (function loop(t) {
+      var dx = tx - x, dy = ty - y;
+      x += dx * 0.085; y += dy * 0.085;
+      if (Math.abs(dx) > 2) face = dx > 0 ? 1 : -1;
+      var tilt = Math.max(-25, Math.min(25, dy * 0.6)) * face;
+      el.style.transform = 'translate(' + (x - 24) + 'px,' + (y - 17) + 'px) scaleX(' + face + ') rotate(' + tilt + 'deg)';
+      if (seen && Math.hypot(dx, dy) > 30 && t - lastBubble > 140) {
+        lastBubble = t;
+        var b = document.createElement('span');
+        b.className = 'tap-bubble';
+        var sz = 3 + Math.random() * 5;
+        b.style.width = b.style.height = sz + 'px';
+        b.style.left = (x - 20 * face) + 'px'; b.style.top = y + 'px';
+        b.style.animationDuration = '1s';
+        b.addEventListener('animationend', function () { this.remove(); });
+        document.body.appendChild(b);
+      }
+      requestAnimationFrame(loop);
+    })(0);
+  }
+
   function initReveal() {
     var cards = document.querySelectorAll('.layout > .card, .report > .card');
     if (REDUCED || !window.IntersectionObserver) return;
@@ -386,6 +435,8 @@
       ' Likes ' + f.tempMin + '–' + f.tempMax + ' °C, needs ' + f.doMin + ' mg/L of oxygen.';
     $('logoFish').innerHTML = FishArt.svg(f);
     $('anchorFish').innerHTML = FishArt.svg(f);
+    var pet = $('petFish');
+    if (pet) pet.innerHTML = FishArt.svg(f);
   }
 
   function setSpecies(k) {
@@ -1189,6 +1240,8 @@
     if ('speechSynthesis' in window) window.speechSynthesis.getVoices();
     initReveal();
     renderPicker();
+    initIntro();
+    initPetFish();
 
     var params = new URLSearchParams(location.search);
     var spot = API.store('wff.spot');
