@@ -175,9 +175,11 @@ h1 { font-size: clamp(1.7rem, 4.2vw, 2.6rem); font-weight: 900; letter-spacing: 
 .chip:hover { background: rgba(94, 234, 212, 0.16); }
 .map-wrap { position: relative; flex: 1; min-height: 320px; border-radius: 16px; overflow: hidden; border: 1px solid var(--card-edge); }
 #map { position: absolute; inset: 0; background: #0b3f5c; }
+#map.offline-map { background: #2f7fa8; }
 .map-hint {
   position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 500; pointer-events: none;
-  background: rgba(2, 20, 34, 0.85); padding: 6px 14px; border-radius: 999px; font-weight: 800; font-size: 0.85rem; white-space: nowrap;
+  background: rgba(2, 20, 34, 0.85); padding: 6px 14px; border-radius: 16px; font-weight: 800; font-size: 0.85rem;
+  width: max-content; max-width: calc(100% - 120px); text-align: center;
 }
 .spot-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .spot-name { font-weight: 800; min-width: 0; overflow-wrap: anywhere; }

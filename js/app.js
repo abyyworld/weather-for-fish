@@ -90,6 +90,8 @@
     });
   }
   var counterMemory = {};
+  var placeTimelineHost = null;
+  window.addEventListener('resize', function () { if (placeTimelineHost) placeTimelineHost(); });
 
   function setBody(el, html) {
     el.innerHTML = html;
@@ -234,7 +236,12 @@
     var tileErrors = 0, warned = false;
     [voyager, seafloor, satellite].forEach(function (layer) {
       layer.on('tileerror', function () {
-        if (++tileErrors >= 6 && !warned) { warned = true; $('mapHint').textContent = MSG.tiles; $('mapHint').hidden = false; }
+        if (++tileErrors >= 6 && !warned) {
+          warned = true;
+          $('mapHint').textContent = MSG.tiles;
+          $('mapHint').hidden = false;
+          loadOfflineLand();
+        }
       });
     });
 
@@ -242,6 +249,25 @@
       ripple(e.latlng);
       chooseSpot(e.latlng.lat, wrapLng(e.latlng.lng), null);
     });
+  }
+
+  // No tiles (no Wi-Fi): draw Natural Earth land polygons, loaded on demand.
+  var landLoaded = false;
+  function loadScript(src) {
+    return new Promise(function (resolve, reject) {
+      var el = document.createElement('script');
+      el.src = src; el.onload = resolve; el.onerror = reject;
+      document.head.appendChild(el);
+    });
+  }
+  function loadOfflineLand() {
+    if (landLoaded) return;
+    landLoaded = true;
+    loadScript('vendor/land/topojson-client.min.js').then(function () { return loadScript('vendor/land/land-50m.js'); }).then(function () {
+      var land = topojson.feature(window.LAND_TOPO, window.LAND_TOPO.objects.land);
+      L.geoJSON(land, { interactive: false, style: { color: '#b9a46c', weight: 1, fillColor: '#e3d3a4', fillOpacity: 1 } }).addTo(map);
+      document.getElementById('map').classList.add('offline-map');
+    }).catch(function () { landLoaded = false; });
   }
 
   function wrapLng(lng) { return ((lng + 540) % 360) - 180; }
@@ -872,7 +898,7 @@
       host.style.height = (last.bottom - first.top) + 'px';
     }
     place();
-    window.addEventListener('resize', place);
+    placeTimelineHost = place;
     var sel = 0;
     function show(i) {
       sel = FM.clamp(i, 0, n - 1);

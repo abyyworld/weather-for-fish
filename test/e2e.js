@@ -282,6 +282,10 @@ async function step(name, fn) {
       await p.page.waitForFunction(function () { return document.getElementById('gradeLetter').getAttribute('data-grade'); });
       assert.match(await p.page.textContent('#mTemp'), /°C/);
       assert.ok(+(await p.page.textContent('#sightCount')) > 10);
+      // No tiles: the map falls back to bundled coastlines.
+      await p.page.waitForSelector('#map.offline-map', { timeout: 15000 });
+      assert.ok(await p.page.locator('#map path.leaflet-interactive, #map svg path').count() > 0);
+      await p.page.locator('#map').screenshot({ path: path.join(OUT, 'offline-map.png') });
       assert.deepEqual(p.errors, []);
       await p.ctx.close();
     });
