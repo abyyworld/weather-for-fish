@@ -139,10 +139,11 @@ h1 { font-size: clamp(1.7rem, 4.2vw, 2.6rem); font-weight: 900; letter-spacing: 
 .hook { grid-column: span 5; }
 .snack { grid-column: span 5; }
 .solunar { grid-column: 1 / -1; }
+.esoteric { grid-column: 1 / -1; }
 .timeline { grid-column: 1 / -1; }
 
 @media (max-width: 1040px) {
-  .where, .grade, .report, .radar-card, .solunar, .timeline { grid-column: 1 / -1; grid-row: auto; }
+  .where, .grade, .report, .radar-card, .solunar, .esoteric, .timeline { grid-column: 1 / -1; grid-row: auto; }
   .who, .anchor, .hook, .snack { grid-column: span 6; }
 }
 @media (max-width: 720px) {
@@ -458,3 +459,61 @@ h1 { font-size: clamp(1.7rem, 4.2vw, 2.6rem); font-weight: 900; letter-spacing: 
   .swimmer, .kelp .strand, .marker-fish, .marker-fish svg, .spin, .loading::after { animation: none !important; }
   .reveal { opacity: 1; transform: none; }
 }
+
+/* ------------------------------------------------------- esoteric almanac */
+.eso-grid { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 16px; margin-top: 14px; }
+@media (max-width: 1040px) { .eso-grid { grid-template-columns: 1fr 1fr; } .radio { grid-column: 1 / -1; } }
+@media (max-width: 720px) { .eso-grid { grid-template-columns: 1fr; } }
+.eso-grid > article { border-radius: 16px; padding: 16px; position: relative; overflow: hidden; min-width: 0; }
+.eso-grid h3 { color: inherit; font-size: 1.05rem; }
+
+.radio {
+  background: linear-gradient(180deg, #6b4423, #4a2e17); color: #f6e7c8;
+  box-shadow: inset 0 0 0 3px #8a5a2e, inset 0 0 0 6px #3a220f, 0 8px 18px rgba(0, 0, 0, 0.35);
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+}
+.radio-top { display: flex; align-items: center; gap: 12px; }
+.radio-band { margin: 2px 0 0; font-size: 0.8rem; color: #d9bf8f; font-style: italic; }
+.radio-dial { position: relative; flex: none; width: 54px; height: 54px; border-radius: 50%; background: radial-gradient(circle, #f3dfb0 0 55%, #c7a46a 56% 62%, #2b1a0b 63%); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); }
+.radio-dial i { position: absolute; left: 50%; top: 8px; bottom: 50%; width: 2px; margin-left: -1px; background: #b3261e; transform-origin: 50% 100%; transform: rotate(-35deg); transition: transform 0.6s; }
+.radio.on-air .radio-dial i { animation: tune 1.6s ease-in-out infinite alternate; }
+@keyframes tune { from { transform: rotate(-40deg); } to { transform: rotate(40deg); } }
+.radio.on-air .radio-band::after { content: '  ● ON AIR'; color: #ff6b5b; font-style: normal; font-weight: 700; animation: blink 1s steps(2) infinite; }
+.radio-body { margin-top: 12px; padding: 12px; border-radius: 10px; background: rgba(0, 0, 0, 0.22); box-shadow: inset 0 0 0 1px rgba(255, 220, 160, 0.15); }
+.sf-issued { margin: 0 0 8px; font-size: 0.85rem; font-style: italic; color: #e5cf9f; }
+.sf-gale { margin: 0 0 6px; font-weight: 700; color: #ffb3a3; }
+.sf-area { margin: 0 0 6px; font-size: 1.35rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.sf-row { display: grid; grid-template-columns: 96px 1fr; gap: 8px; padding: 3px 0; border-bottom: 1px dashed rgba(255, 220, 160, 0.18); }
+.sf-row span { color: #d9bf8f; font-size: 0.85rem; font-variant: small-caps; letter-spacing: 0.05em; padding-top: 1px; }
+.sf-row b { font-weight: 700; }
+.radio .fine { color: #c9ae7d; }
+.radio-btn { margin-top: 12px; width: 100%; background: #f3dfb0; color: #3a220f; box-shadow: 0 3px 0 #2b1a0b; font-family: var(--font); }
+
+.oracle {
+  background: radial-gradient(120% 90% at 50% 0%, #4c2a85, #1d0f3d 70%); color: #efe6ff; text-align: center;
+  box-shadow: inset 0 0 0 1px rgba(200, 170, 255, 0.35), 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+.oracle > *:not(.stars) { position: relative; }
+.stars { position: absolute; inset: 0; pointer-events: none; }
+.stars i { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #fff; animation: twinkle 3s ease-in-out infinite; }
+@keyframes twinkle { 0%, 100% { opacity: 0.15; transform: scale(0.6); } 50% { opacity: 1; transform: scale(1.3); } }
+.oracle .sign { font-size: 4.2rem; line-height: 1.1; margin-top: 6px; color: #ffd166; text-shadow: 0 0 22px rgba(255, 209, 102, 0.75); animation: hover 4s ease-in-out infinite; }
+@keyframes hover { 50% { transform: translateY(-6px) scale(1.04); } }
+.oracle .sign-name { margin: 2px 0 6px; font-weight: 900; font-size: 1.1rem; }
+.oracle .reading { font-family: 'Iowan Old Style', Palatino, Georgia, serif; font-style: italic; font-size: 1.02rem; margin: 0 0 10px; }
+.omens { list-style: none; padding: 0; margin: 0 0 8px; display: grid; gap: 4px; font-weight: 700; font-size: 0.9rem; }
+.oracle .fine { color: #b9a6e0; }
+
+.folklore {
+  background: #f4ead2 radial-gradient(120% 80% at 50% 0%, #fbf4e2, #efe1c0); color: #2b2116;
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  box-shadow: inset 0 0 0 1px rgba(80, 50, 10, 0.25), 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+.folklore .wind-now { margin: 8px 0 6px; }
+.rhyme { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 4px; }
+.rhyme li { opacity: 0.38; font-style: italic; transition: opacity 0.3s; }
+.rhyme li.on { opacity: 1; font-weight: 700; font-size: 1.08rem; background: rgba(255, 209, 102, 0.35); border-radius: 6px; padding: 4px 8px; margin: 2px -8px; }
+.folklore .fine { color: #6b5435; }
+.folklore .detail { color: #3c2f1f; }
+.elevator-title { margin: 12px 0 0; font-size: 1rem; }
+@media (prefers-reduced-motion: reduce) { .stars i, .oracle .sign, .radio.on-air .radio-dial i { animation: none !important; } }

@@ -43,7 +43,7 @@ function forecast(o) {
   var tNoise = smooth(rand, [71, 131, 260]), cNoise = smooth(rand, [17, 43, 97]);
   var wNoise = smooth(rand, [11, 29, 61]), pNoise = smooth(rand, [55, 140]);
   var h = {
-    time: [], temperature_2m: [], precipitation: [], cloud_cover: [], wind_speed_10m: [],
+    time: [], temperature_2m: [], precipitation: [], cloud_cover: [], wind_speed_10m: [], wind_direction_10m: [], visibility: [],
     pressure_msl: [], surface_pressure: [], shortwave_radiation: [], is_day: [], weather_code: []
   };
   times.forEach(function (t, i) {
@@ -61,6 +61,8 @@ function forecast(o) {
     h.precipitation.push(rain);
     h.cloud_cover.push(Math.round(cloud));
     h.wind_speed_10m.push(r1(wind));
+    h.wind_direction_10m.push(Math.round((((o.windFrom || 270) + 70 * wNoise(i + 40)) % 360 + 360) % 360));
+    h.visibility.push(Math.round(Math.max(400, 24000 - cloud * 150 - rain * 5000)));
     h.pressure_msl.push(r1(press));
     h.surface_pressure.push(r1(press - (o.elevation || 0) * 0.12));
     h.shortwave_radiation.push(Math.round(rad));
@@ -71,7 +73,7 @@ function forecast(o) {
     latitude: o.lat, longitude: o.lng, generationtime_ms: 0.5, utc_offset_seconds: o.offsetSec,
     timezone: o.timezone || 'GMT', timezone_abbreviation: o.tzAbbr || 'GMT', elevation: o.elevation || 0,
     hourly_units: {
-      time: 'iso8601', temperature_2m: '°C', precipitation: 'mm', cloud_cover: '%', wind_speed_10m: 'm/s',
+      time: 'iso8601', temperature_2m: '°C', precipitation: 'mm', cloud_cover: '%', wind_speed_10m: 'm/s', wind_direction_10m: '°', visibility: 'm',
       pressure_msl: 'hPa', surface_pressure: 'hPa', shortwave_radiation: 'W/m²', is_day: '', weather_code: 'wmo code'
     },
     hourly: h

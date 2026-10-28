@@ -318,6 +318,10 @@ test('report: switching the fish changes the forecast', function () {
   assert.ok(trout.predators.blips.length > 20);
   assert.equal(trout.timeline.length, 73);
   assert.equal(trout.bestTimes.length >= 3, true);
+  // Best swim is a daylight hour whenever the day has daylight in the window.
+  trout.bestTimes.forEach(function (b) {
+    if (b.daylight) assert.ok(FM.sunAltitudeDeg(b.t, trout.lat, trout.lng) > 0);
+  });
 });
 
 test('report: lakes use the air-temperature moving average and no sea state', function () {
@@ -384,4 +388,36 @@ test('every fish and predator has what the UI needs', function () {
   });
   assert.equal(D.PREDATORS.length, 15);
   assert.equal(D.PREDATORS.filter(function (p) { return p.key === 'heron'; })[0].blurb.indexOf('Do not trust the statue') > 0, true);
+});
+
+test('esoteric almanac: Beaufort, sea state, visibility, shipping forecast', function () {
+  assert.equal(FM.beaufort(0.2).force, 0);
+  assert.equal(FM.beaufort(5).name, 'Gentle breeze');
+  assert.equal(FM.beaufort(18).force, 8);
+  assert.equal(FM.beaufort(40).name, 'Hurricane force');
+  assert.equal(FM.seaState(1.0), 'Slight');
+  assert.equal(FM.seaState(3), 'Rough');
+  assert.equal(FM.visibilityTerm(500, 45), 'Fog');
+  assert.equal(FM.visibilityTerm(3000), 'Poor');
+  assert.equal(FM.visibilityTerm(20000), 'Good');
+  var r = report(S.MONTEREY, Date.UTC(2026, 9, 28, 22), 'trout');
+  assert.match(r.shipping.text, /^And now the Shipping Forecast, issued by the Fish Office on behalf of the Maritime and Codguard Agency at \d{4} today\./);
+  assert.match(r.shipping.parts.wind, /^(North|Northeast|East|Southeast|South|Southwest|West|Northwest) \d+( or \d+)?/);
+  assert.match(r.shipping.text, /Blub\.$/);
+  assert.ok(r.shipping.parts.sea, 'sea state for sea spots');
+  assert.equal(report(S.LAKE, Date.UTC(2026, 9, 28, 20), 'trout').shipping.parts.sea, null);
+});
+
+test('esoteric almanac: the moon\'s zodiac sign and the wind rhyme', function () {
+  // Full moon of 26 Oct 2026 sits opposite the Sun (in Scorpio), so in Taurus/Aries.
+  var full = FM.moonSign(Date.UTC(2026, 9, 26, 6));
+  var sunLon = 214; // the Sun's ecliptic longitude on 26 Oct, approximately
+  near(Math.abs(((full.longitude - sunLon + 540) % 360) - 180), 180, 8, 'full moon opposite the sun');
+  // Successive days move ~13 degrees.
+  var d = FM.moonLongitude(Date.UTC(2026, 0, 2)) - FM.moonLongitude(Date.UTC(2026, 0, 1));
+  near((d + 360) % 360, 13.2, 1.5);
+  assert.equal(FM.windRhyme(270).line, 'When the wind is in the west, then the fishes bite the best.');
+  assert.equal(FM.windRhyme(80).quarter, 'East');
+  var r = report(S.MONTEREY, Date.UTC(2026, 9, 28, 22), 'trout');
+  assert.ok(r.oracle.sign.name && r.oracle.reading && r.oracle.unluckyLure);
 });

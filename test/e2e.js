@@ -214,6 +214,22 @@ async function step(name, fn) {
       assert.match(spoken[0].text, /^Good (morning|afternoon|evening|night), trout of Monterey Bay\./);
     });
 
+    await step('esoteric almanac: Shipping Forecast (with the pips), ichthyomancy, folklore', async function () {
+      var sf = await page.textContent('#shippingCard');
+      assert.match(sf, /Maritime and Codguard Agency/);
+      assert.match(sf, /MONTEREY BAY|Monterey Bay/);
+      assert.match(sf, /Wind(North|Northeast|East|Southeast|South|Southwest|West|Northwest) \d/);
+      assert.match(sf, /Sea state(Calm|Smooth|Slight|Moderate|Rough|Very rough|High)/);
+      assert.match(await page.textContent('#oracleCard'), /The Moon is in (Aries|Taurus|Gemini|Cancer|Leo|Virgo|Libra|Scorpio|Sagittarius|Capricorn|Aquarius|Pisces)/);
+      assert.equal(await page.locator('#folkloreCard .rhyme li.on').count(), 1);
+      assert.match(await page.textContent('#folkloreCard'), /plankton/);
+      await page.click('#shippingBtn');
+      await page.waitForFunction(function () { return window.__spoken.length >= 2; }, null, { timeout: 12000 });
+      var last = await page.evaluate(function () { return window.__spoken[window.__spoken.length - 1]; });
+      assert.match(last.text, /^And now the Shipping Forecast, issued by the Fish Office/);
+      assert.match(last.text, /Blub\.$/);
+    });
+
     await step('2. switching Trout to Clownfish changes the forecast', async function () {
       var before = { grade: await page.textContent('#gradeLetter'), temp: await page.textContent('#mTemp'), head: await page.textContent('#headline') };
       await page.locator('.fish-option[data-key="clownfish"]').click();

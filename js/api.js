@@ -48,7 +48,7 @@
   function forecast(lat, lng) {
     return fetchJSON(URLS.forecast + '?' + qs({
       latitude: lat.toFixed(4), longitude: lng.toFixed(4),
-      hourly: 'temperature_2m,precipitation,cloud_cover,wind_speed_10m,pressure_msl,surface_pressure,shortwave_radiation,weather_code',
+      hourly: 'temperature_2m,precipitation,cloud_cover,wind_speed_10m,wind_direction_10m,visibility,pressure_msl,surface_pressure,shortwave_radiation,weather_code',
       past_days: 7, forecast_days: 4, timezone: 'auto', wind_speed_unit: 'ms'
     }));
   }

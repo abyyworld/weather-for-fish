@@ -160,6 +160,8 @@
         precip: pick(h.precipitation, i),
         cloud: pick(h.cloud_cover, i),
         wind: toMetresPerSecond(pick(h.wind_speed_10m, i), u.wind_speed_10m || 'km/h'),
+        windDir: pick(h.wind_direction_10m, i),
+        visibility: pick(h.visibility, i),
         pressure: pick(h.pressure_msl, i),
         surfacePressure: pick(h.surface_pressure, i),
         radiation: pick(h.shortwave_radiation, i),
@@ -723,6 +725,169 @@
     return best;
   }
 
+  // ------------------------------------------------------ esoteric almanac ----
+
+  // Beaufort wind force (WMO), from mean wind speed at 10 m in m/s.
+  var BEAUFORT = [0.5, 1.6, 3.4, 5.5, 8.0, 10.8, 13.9, 17.2, 20.8, 24.5, 28.5, 32.7];
+  var BEAUFORT_NAMES = ['Calm', 'Light air', 'Light breeze', 'Gentle breeze', 'Moderate breeze', 'Fresh breeze',
+    'Strong breeze', 'Near gale', 'Gale', 'Severe gale', 'Storm', 'Violent storm', 'Hurricane force'];
+  function beaufort(ms) {
+    if (!isNum(ms)) return null;
+    var f = 0;
+    while (f < BEAUFORT.length && ms >= BEAUFORT[f]) f++;
+    return { force: f, name: BEAUFORT_NAMES[f] };
+  }
+
+  // WMO/Douglas sea state from significant wave height (m).
+  function seaState(h) {
+    if (!isNum(h)) return null;
+    var t = [[0.1, 'Calm'], [0.5, 'Smooth'], [1.25, 'Slight'], [2.5, 'Moderate'], [4, 'Rough'], [6, 'Very rough'],
+      [9, 'High'], [14, 'Very high'], [Infinity, 'Phenomenal']];
+    for (var i = 0; i < t.length; i++) if (h < t[i][0]) return t[i][1];
+  }
+
+  // Shipping Forecast visibility terms (1 nautical mile = 1852 m).
+  function visibilityTerm(m, code) {
+    if (!isNum(m)) return null;
+    if (m < 1000) return code === 45 || code === 48 ? 'Fog' : 'Very poor';
+    if (m < 2 * 1852) return 'Poor';
+    if (m <= 5 * 1852) return 'Moderate';
+    return 'Good';
+  }
+
+  function weatherTerm(code) {
+    if (!isNum(code)) return null;
+    if (code === 45 || code === 48) return 'Fog';
+    if (code >= 95) return 'Thundery showers';
+    if (code >= 85) return 'Snow showers';
+    if (code >= 80) return 'Showers';
+    if (code >= 71) return 'Snow';
+    if (code >= 61) return 'Rain';
+    if (code >= 51) return 'Drizzle';
+    return 'Fair';
+  }
+
+  var EIGHT = ['North', 'Northeast', 'East', 'Southeast', 'South', 'Southwest', 'West', 'Northwest'];
+  function eightPoint(deg) { return EIGHT[Math.round((((deg % 360) + 360) % 360) / 45) % 8]; }
+
+  // Signed smallest turn from a to b in degrees (+ clockwise = veering).
+  function turn(a, b) { return ((b - a + 540) % 360) - 180; }
+
+  function circularMean(degs) {
+    var x = 0, y = 0;
+    degs.forEach(function (d) { x += Math.cos(d * RAD); y += Math.sin(d * RAD); });
+    return (Math.atan2(y, x) / RAD + 360) % 360;
+  }
+
+  /*
+   * The Shipping Forecast, BBC Radio 4 style, for fish. Wind as direction plus
+   * Beaufort force range over the next 6 hours, with "veering"/"backing" and
+   * "increasing"/"decreasing" for the 6-24 hours after; then sea state,
+   * weather, visibility. Then the fish-specific bits.
+   */
+  function shippingForecast(r) {
+    var tl = r.timeline || [];
+    if (!tl.length) return null;
+    var now = tl.slice(0, 7), later = tl.slice(7, 25);
+    var dirs = function (xs) { return xs.map(function (x) { return x.windDir; }).filter(isNum); };
+    var forces = function (xs) { return xs.map(function (x) { return beaufort(x.wind); }).filter(Boolean).map(function (b) { return b.force; }); };
+    var f0 = forces(now), f1 = forces(later), d0 = dirs(now), d1 = dirs(later);
+    if (!f0.length) return null;
+    var lo = Math.min.apply(null, f0), hi = Math.max.apply(null, f0);
+    var wind = (d0.length ? eightPoint(circularMean(d0)) : 'Variable') + ' ' + (lo === hi ? lo : lo + ' or ' + hi);
+    if (f1.length) {
+      var hi1 = Math.max.apply(null, f1), lo1 = Math.min.apply(null, f1);
+      if (hi1 >= hi + 2) wind += ', increasing ' + hi1 + ' later';
+      else if (hi1 <= lo - 2) wind += ', decreasing ' + lo1 + ' later';
+      else if (hi1 === hi + 1) wind += ', occasionally ' + hi1 + ' later';
+    }
+    if (d0.length && d1.length) {
+      var t = turn(circularMean(d0), circularMean(d1));
+      if (Math.abs(t) >= 45) wind += ', ' + (t > 0 ? 'veering ' : 'backing ') + eightPoint(circularMean(d1)).toLowerCase() + ' later';
+    }
+    var gale = hi >= 8 || (f1.length && Math.max.apply(null, f1) >= 8);
+    var weathers = [];
+    tl.slice(0, 13).forEach(function (x) { var w = weatherTerm(x.weatherCode); if (w && weathers.indexOf(w) < 0) weathers.push(w); });
+    var vis = visibilityTerm(tl[0].visibility, tl[0].weatherCode);
+    var visLater = visibilityTerm((tl[12] || tl[0]).visibility, (tl[12] || tl[0]).weatherCode);
+    var sea = r.isSea && r.current && r.current.waves ? seaState(r.current.waves.heightM) : null;
+    var preds = r.predators && r.predators.blips.length ? r.predators.threat.topKeys.slice(0, 2).map(function (k) {
+      return r.predators.blips.filter(function (b) { return b.key === k; })[0].name;
+    }) : [];
+    var hookPeak = tl.slice(0, 13).reduce(function (a, x) { return x.hook.score > a.hook.score ? x : a; }, tl[0]);
+    var parts = {
+      area: r.place || 'Unnamed water',
+      gale: gale ? 'There are warnings of gales in ' + (r.place || 'your water') + '.' : null,
+      wind: wind + '.',
+      sea: sea ? sea + '.' : null,
+      weather: (weathers.slice(0, 2).join(', then ') || 'Fair') + '.',
+      visibility: vis ? vis + (visLater && visLater !== vis ? ', occasionally ' + visLater.toLowerCase() : '') + '.' : null,
+      predators: preds.length ? preds[0] + (preds[1] ? ', occasionally ' + preds[1].toLowerCase() : '') + '.' : 'None reported.',
+      humans: hookPeak.hook.score >= 50 ? 'Rods out, ' + formatClock(hookPeak.t, r.offsetSec) + '.' : 'Scattered, mainly elsewhere.'
+    };
+    var spoken = 'And now the Shipping Forecast, issued by the Fish Office on behalf of the Maritime and Codguard Agency at ' +
+      formatClock(r.now, r.offsetSec).replace(':', '') + ' today. ' + (parts.gale ? parts.gale + ' ' : '') +
+      parts.area + '. ' + parts.wind + ' ' + (parts.sea ? parts.sea + ' ' : '') + parts.weather + ' ' +
+      (parts.visibility ? parts.visibility + ' ' : '') + 'Predators: ' + parts.predators + ' Humans: ' + parts.humans + ' Blub.';
+    return { parts: parts, text: spoken };
+  }
+
+  // The Moon's ecliptic longitude (low-precision series, ~1°), then its sign.
+  var SIGNS = [
+    ['Aries', '♈', 'The ram charges at everything. Do not charge at the shiny spinner.'],
+    ['Taurus', '♉', 'Stubborn energy. Find a good rock and refuse to leave it.'],
+    ['Gemini', '♊', 'You will see your reflection and think it is another fish. It is not. Be cool.'],
+    ['Cancer', '♋', 'A crab is plotting against you. Specifically you.'],
+    ['Leo', '♌', 'Your scales look incredible today. Swim somewhere you will be seen (not by a heron).'],
+    ['Virgo', '♍', 'Tidy your corner of the riverbed. Order brings calm.'],
+    ['Libra', '♎', 'Perfect neutral buoyancy. Your swim bladder and your soul are in balance.'],
+    ['Scorpio', '♏', 'Something with a sting is nearby. Give the stingray its space.'],
+    ['Sagittarius', '♐', 'Archerfish energy: spit a jet of water at a beetle and knock it off a leaf. Yes, really.'],
+    ['Capricorn', '♑', 'Capricorn is a sea-goat: literally half fish. A big day for your people.'],
+    ['Aquarius', '♒', 'The water-bearer is carrying water. Make sure it is not you, in a plastic bag.'],
+    ['Pisces', '♓', 'The fish sign, under a fish moon. This is your day. Swim like nobody is fishing.']
+  ];
+  function moonLongitude(ms) {
+    var d = ms / DAY - 10957.5; // days since J2000.0
+    var L = 218.316 + 13.176396 * d, M = 134.963 + 13.064993 * d;
+    return (((L + 6.289 * Math.sin(M * RAD)) % 360) + 360) % 360;
+  }
+  function moonSign(ms) {
+    var lon = moonLongitude(ms), i = Math.floor(lon / 30);
+    return { longitude: lon, name: SIGNS[i][0], symbol: SIGNS[i][1], advice: SIGNS[i][2] };
+  }
+
+  var LURES = ['chartreuse', 'firetiger orange', 'pearl white', 'motor-oil brown', 'electric chicken', 'bubblegum pink', 'black and blue', 'silver flash'];
+  function hashStr(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+
+  // Ichthyomancy was divination by inspecting fish. This is the reverse.
+  function ichthyomancy(r) {
+    var sign = moonSign(r.now), lp = localParts(r.now, r.offsetSec);
+    var h = hashStr(lp.dateKey + r.species.key + (r.place || ''));
+    var depth = r.current && r.current.waves ? Math.min(40, Math.max(2, Math.round(r.current.waves.calmDepthM / 4))) : 1 + (h % 6);
+    return {
+      sign: sign,
+      reading: sign.advice,
+      luckyDepthM: depth,
+      unluckyLure: LURES[h % LURES.length],
+      luckyHour: r.solunar && r.solunar.next ? r.solunar.next.peak : null
+    };
+  }
+
+  // The angler's wind rhyme (17th-century folklore, quoted in angling books
+  // since Izaak Walton's era), matched to the real wind direction.
+  var RHYME = {
+    North: 'When the wind is in the north, then the fishes do come forth.',
+    East: 'When the wind is in the east, then the fishes bite the least.',
+    South: "When the wind is in the south, it blows the bait in the fish's mouth.",
+    West: 'When the wind is in the west, then the fishes bite the best.'
+  };
+  function windRhyme(dirDeg) {
+    if (!isNum(dirDeg)) return null;
+    var q = ['North', 'East', 'South', 'West'][Math.round((((dirDeg % 360) + 360) % 360) / 90) % 4];
+    return { quarter: q, from: eightPoint(dirDeg), line: RHYME[q] };
+  }
+
   // ----------------------------------------------------------- swim grade ----
 
   function swimScore(f) {
@@ -786,6 +951,7 @@
     }
 
     if (!hasWeather) {
+      r.oracle = ichthyomancy(r);
       r.broadcast = composeBroadcast(r);
       return r;
     }
@@ -836,7 +1002,8 @@
       timeline.push({
         t: h.t, i: i, waterTemp: T, airTemp: h.airTemp, feels: feels, oxygen: oxygen[i], breath: breath,
         hook: hook, snack: snack, threat: threat, waves: wm, solunar: sol, sunAlt: sunAlt,
-        precip: h.precip, wind: h.wind, pressure: h.pressure, score: score, grade: letterGrade(score)
+        precip: h.precip, wind: h.wind, windDir: h.windDir, visibility: h.visibility, weatherCode: h.weatherCode,
+        pressure: h.pressure, score: score, grade: letterGrade(score)
       });
     }
     r.timeline = timeline;
@@ -861,21 +1028,30 @@
       r.current.tides = findTides(tideTimes, tideLevels, now, 4);
     }
 
-    // Best time to swim per local day, and the overall grade.
+    // Best time to swim per local day (in daylight, when there is any; the
+    // safest hour of the night is reported separately), and the overall grade.
     var days = {}, order = [];
     timeline.forEach(function (x) {
       var key = localParts(x.t, offsetSec).dateKey;
-      if (!days[key]) { days[key] = x; order.push(key); }
-      else if (x.score > days[key].score) days[key] = x;
+      var d = days[key] || (days[key] = { day: null, any: null });
+      if (!d.any) order.push(key);
+      if (!d.any || x.score > d.any.score) d.any = x;
+      if (x.sunAlt > 0 && (!d.day || x.score > d.day.score)) d.day = x;
     });
     r.bestTimes = order.map(function (key) {
-      var x = days[key], lp = localParts(x.t, offsetSec);
-      return { dateKey: key, weekday: lp.weekdayName, t: x.t, score: x.score, grade: x.grade };
+      var d = days[key], x = d.day || d.any, lp = localParts(x.t, offsetSec);
+      return {
+        dateKey: key, weekday: lp.weekdayName, t: x.t, score: x.score, grade: x.grade, daylight: !!d.day,
+        night: d.any !== x && d.any.score > x.score + 5 ? { t: d.any.t, score: d.any.score, grade: d.any.grade } : null
+      };
     });
     var next24 = timeline.slice(0, 24).map(function (x) { return x.score; });
     var gradeScore = Math.round(0.7 * mean(next24) + 0.3 * Math.min.apply(null, next24));
     r.grade = { score: gradeScore, letter: letterGrade(gradeScore) };
 
+    r.shipping = shippingForecast(r);
+    r.oracle = ichthyomancy(r);
+    r.rhyme = windRhyme(h0.windDir);
     r.broadcast = composeBroadcast(r);
     return r;
   }
@@ -972,6 +1148,9 @@
     hookDanger: hookDanger, snackIndex: snackIndex,
     lunarEvents: lunarEvents, moonPhase: moonPhase, solunarDay: solunarDay, solunarAt: solunarAt,
     swimScore: swimScore, letterGrade: letterGrade,
+    beaufort: beaufort, seaState: seaState, visibilityTerm: visibilityTerm, weatherTerm: weatherTerm,
+    shippingForecast: shippingForecast, moonLongitude: moonLongitude, moonSign: moonSign,
+    ichthyomancy: ichthyomancy, windRhyme: windRhyme,
     buildReport: buildReport, composeBroadcast: composeBroadcast
   };
 });

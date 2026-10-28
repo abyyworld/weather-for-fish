@@ -559,6 +559,7 @@
     renderGauge('hook', r);
     renderGauge('snack', r);
     renderSolunar(r);
+    renderEsoteric(r);
     renderTimeline(r);
     $('saveDemoBtn').disabled = !!state.demo || !state.forecast;
     document.body.classList.toggle('is-sea', !!r.isSea);
@@ -610,7 +611,8 @@
     var words = { A: 'Excellent day to be a fish.', B: 'Good swimming. Stay alert.', C: 'Swimmable, with caveats.', D: 'Poor. Consider staying under a rock.', F: 'Do not go out there.' };
     $('gradeSummary').textContent = 'Score ' + r.grade.score + '/100 for a ' + sp().name.toLowerCase() + '. ' + words[r.grade.letter];
     $('bestTimes').innerHTML = r.bestTimes.map(function (bt) {
-      return '<span class="best">Best swim ' + esc(bt.weekday.slice(0, 3)) + ': <b>' + clock(bt.t, r) + '</b> (' + bt.grade + ')</span>';
+      return '<span class="best">' + (bt.daylight ? '☀️' : '🌙') + ' Best swim ' + esc(bt.weekday.slice(0, 3)) + ': <b>' + clock(bt.t, r) + '</b> (' + bt.grade + ')' +
+        (bt.night ? ' <span class="muted">· safest 🌙 ' + clock(bt.night.t, r) + '</span>' : '') + '</span>';
     }).join('');
   }
 
@@ -846,6 +848,88 @@
     $('solunarBody').innerHTML = html;
   }
 
+  // ------------------------------------------------------- esoteric almanac
+
+  function renderEsoteric(r) {
+    var sb = $('shippingBody');
+    if (weatherState(sb) && r.shipping) {
+      var p = r.shipping.parts;
+      var row = function (k, v) { return v ? '<div class="sf-row"><span>' + k + '</span><b>' + esc(v) + '</b></div>' : ''; };
+      setBody(sb, '<p class="sf-issued">Issued by the Fish Office on behalf of the Maritime and Codguard Agency at ' +
+        clock(r.now, r).replace(':', '') + ' today.</p>' +
+        (p.gale ? '<p class="sf-gale">⚠️ ' + esc(p.gale) + '</p>' : '') +
+        '<p class="sf-area">' + esc(p.area) + '</p>' +
+        row('Wind', p.wind) + row('Sea state', p.sea) + row('Weather', p.weather) + row('Visibility', p.visibility) +
+        row('Predators', p.predators) + row('Humans', p.humans) +
+        '<p class="fine">Beaufort scale, WMO sea state and the official visibility terms (good: over 5 nautical miles). Read in the traditional order.</p>');
+    }
+    $('shippingBtn').disabled = !r.shipping;
+
+    var o = r.oracle;
+    if (o) {
+      var lucky = o.luckyHour ? clock(o.luckyHour, r) : null;
+      $('oracleBody').innerHTML = '<div class="sign">' + o.sign.symbol + '</div>' +
+        '<p class="sign-name">The Moon is in ' + esc(o.sign.name) + '</p>' +
+        '<p class="reading">“' + esc(o.reading) + '”</p>' +
+        '<ul class="omens"><li>🍀 Lucky depth: <b>' + o.luckyDepthM + ' m</b></li>' +
+        '<li>🪝 Avoid lures in <b>' + esc(o.unluckyLure) + '</b></li>' +
+        (lucky ? '<li>⏳ Auspicious hour: <b>' + lucky + '</b></li>' : '') + '</ul>' +
+        '<p class="fine">Ichthyomancy: the ancient art of divination by inspecting fish. We have reversed it. ' +
+        'Moon at ecliptic longitude ' + o.sign.longitude.toFixed(1) + '°.</p>';
+    }
+
+    var fb = $('folkloreBody');
+    if (weatherState(fb)) {
+      var w = r.rhyme, sun = r.solunar.today.sun;
+      var lines = ['North', 'East', 'South', 'West'].map(function (q) {
+        var line = { North: 'When the wind is in the north, then the fishes do come forth.', East: 'When the wind is in the east, then the fishes bite the least.',
+          South: "When the wind is in the south, it blows the bait in the fish's mouth.", West: 'When the wind is in the west, then the fishes bite the best.' }[q];
+        return '<li class="' + (w && w.quarter === q ? 'on' : '') + '">' + esc(line) + '</li>';
+      }).join('');
+      setBody(fb, (w ? '<p class="wind-now">The wind is from the <b>' + esc(w.from.toLowerCase()) + '</b> <span class="arrow" style="transform:rotate(' + Math.round(r.current && r.timeline[0].windDir || 0) + 'deg)">⬇️</span>, so the old rhyme says:</p>' : '') +
+        '<ol class="rhyme">' + lines + '</ol>' +
+        '<p class="fine">Traditional anglers\' rhyme, quoted in fishing books for 400 years. Peer review pending.</p>' +
+        '<h4 class="elevator-title">🦐 The plankton elevator</h4>' +
+        '<p class="detail">' + (sun.sunset ? 'Tonight at <b>' + clock(sun.sunset, r) + '</b>' : 'Tonight') + ', billions of zooplankton ride up from the deep to graze at the surface, and they go back down at ' +
+        (sun.sunrise ? '<b>' + clock(sun.sunrise, r) + '</b>' : 'dawn') + '. Diel vertical migration: the largest migration on Earth by biomass, every single night. Dinner comes to you.</p>');
+    }
+  }
+
+  // Greenwich Time Signal: five short pips and a long one, a second apart.
+  function pips(done) {
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      var t = audio.currentTime + 0.1;
+      for (var i = 0; i < 6; i++) {
+        var o = audio.createOscillator(), g = audio.createGain(), len = i === 5 ? 0.5 : 0.1;
+        o.frequency.value = 1000;
+        g.gain.setValueAtTime(0.0001, t + i);
+        g.gain.exponentialRampToValueAtTime(0.18, t + i + 0.01);
+        g.gain.setValueAtTime(0.18, t + i + len - 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + i + len);
+        o.connect(g); g.connect(audio.destination);
+        o.start(t + i); o.stop(t + i + len + 0.02);
+      }
+      setTimeout(done, 5800);
+    } catch (e) { done(); }
+  }
+
+  function readShipping() {
+    var r = state.report;
+    if (!r || !r.shipping) return;
+    var card = $('shippingCard');
+    if (card.classList.contains('on-air')) { stopSpeech(); card.classList.remove('on-air'); return; }
+    card.classList.add('on-air');
+    $('shippingBtn').textContent = '⏹ Stop';
+    pips(function () {
+      if (!card.classList.contains('on-air')) return;
+      say(r.shipping.text, { voice: /Daniel|Google UK English Male|Arthur|en-GB/i, pitch: 0.95, rate: 0.88 }, function () {
+        card.classList.remove('on-air');
+        $('shippingBtn').textContent = '📻 Read the Shipping Forecast';
+      });
+    });
+  }
+
   // -------------------------------------------------------------- timeline
 
   // Diverging scale: coral (bad for you) <- slate -> blue (good for you).
@@ -934,28 +1018,46 @@
 
   // ---------------------------------------------------------------- speech
 
-  function pickVoice() {
+  var BUBBLY = /Samantha|Karen|Tessa|Moira|Zira|Google UK English Female|Google US English|Female|Jenny|Aria/i;
+  function pickVoice(pref) {
     var voices = window.speechSynthesis.getVoices().filter(function (v) { return /^en/i.test(v.lang); });
-    var pref = /Samantha|Karen|Tessa|Moira|Zira|Google UK English Female|Google US English|Female|Jenny|Aria/i;
-    return voices.filter(function (v) { return pref.test(v.name); })[0] || voices[0] || null;
+    return voices.filter(function (v) { return pref.test(v.name) || pref.test(v.lang); })[0] || voices[0] || null;
+  }
+
+  function stopSpeech() {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  }
+
+  // Speak text; onEnd always fires (even if the engine forgets to).
+  function say(text, opts, onEnd) {
+    if (!('speechSynthesis' in window)) { toast('Your browser cannot talk. Neither can fish. Blub.'); if (onEnd) onEnd(); return null; }
+    var u = new SpeechSynthesisUtterance(text.replace(/°C/g, 'degrees').replace(/mg\/L/g, 'milligrams per litre').replace(/ km /g, ' kilometres '));
+    var v = pickVoice(opts.voice || BUBBLY);
+    if (v) u.voice = v;
+    u.pitch = opts.pitch; u.rate = opts.rate; u.volume = 1;
+    var finished = false;
+    var finish = function () { if (finished) return; finished = true; if (onEnd) onEnd(); };
+    u.onend = u.onerror = finish;
+    if (opts.onBoundary) u.onboundary = opts.onBoundary;
+    if (opts.onStart) u.onstart = opts.onStart;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+    setTimeout(finish, 2000 + text.length * 90 / (opts.rate || 1));
+    return u;
   }
 
   function speak() {
     var r = state.report;
     if (!r) { toast('Pick some water first. I need something to read.'); return; }
-    if (!('speechSynthesis' in window)) { toast('Your browser cannot talk. Neither can fish. Blub.'); return; }
-    var synth = window.speechSynthesis;
-    if (synth.speaking) { synth.cancel(); return; }
-    var u = new SpeechSynthesisUtterance(r.broadcast.text.replace(/°C/g, 'degrees').replace(/mg\/L/g, 'milligrams per litre').replace(/ km /g, ' kilometres '));
-    var v = pickVoice();
-    if (v) u.voice = v;
-    u.pitch = 1.9; u.rate = 1.08; u.volume = 1;
     var fish = $('anchorFish'), btn = $('speakBtn');
-    u.onstart = function () { fish.classList.add('talking'); btn.textContent = '⏹ Stop'; };
-    u.onend = u.onerror = function () { fish.classList.remove('talking'); btn.textContent = '🔊 Read it to me'; blub(); };
-    synth.speak(u);
-    // Some engines never fire onstart.
+    if (fish.classList.contains('talking')) { stopSpeech(); return; }
     fish.classList.add('talking');
+    btn.textContent = '⏹ Stop';
+    say(r.broadcast.text, { pitch: 1.9, rate: 1.08 }, function () {
+      fish.classList.remove('talking');
+      btn.textContent = '🔊 Read it to me';
+      blub();
+    });
   }
 
   // ------------------------------------------------------------------ boot
@@ -971,6 +1073,14 @@
     initWaterMode();
     radar = new Radar($('radar'), { onSelect: showBlip });
     $('speakBtn').addEventListener('click', speak);
+    $('shippingBtn').addEventListener('click', readShipping);
+    var stars = document.querySelector('.oracle .stars');
+    for (var si = 0; si < 26; si++) {
+      var st = document.createElement('i');
+      st.style.left = (Math.random() * 100) + '%'; st.style.top = (Math.random() * 100) + '%';
+      st.style.animationDelay = (-Math.random() * 3) + 's';
+      stars.appendChild(st);
+    }
     $('demoBtn').addEventListener('click', function () { loadDemo(); });
     $('saveDemoBtn').addEventListener('click', saveDemo);
     $('demoBanner').addEventListener('click', function (e) {
