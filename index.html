@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Weather for Fish</title>
+  <meta name="description" content="The weather app for fish. Target audience: fish. Smartphone adoption among target audience: 0%.">
+  <meta name="theme-color" content="#0a4a6e">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%9F%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="rays" aria-hidden="true"></div>
+  <div class="bubbles" id="bubbles" aria-hidden="true"></div>
+
+  <header class="masthead">
+    <div class="brand">
+      <div class="logo" id="logoFish" aria-hidden="true"></div>
+      <div>
+        <h1>Weather for Fish</h1>
+        <p class="tagline">Target audience: fish. Smartphone adoption among target audience: 0%.</p>
+      </div>
+    </div>
+    <div class="mast-actions">
+      <button class="btn btn-ghost" id="demoBtn" type="button" title="Load the bundled data snapshot (works offline)">🎬 Demo mode</button>
+      <button class="btn btn-ghost" id="saveDemoBtn" type="button" title="Save what's on screen as the demo snapshot" disabled>💾 Save as demo</button>
+    </div>
+  </header>
+
+  <div class="demo-banner" id="demoBanner" hidden></div>
+
+  <main class="layout">
+    <section class="card where" id="where" aria-labelledby="whereTitle">
+      <h2 id="whereTitle"><span class="step">1</span> Where do you live?</h2>
+      <form class="search" id="searchForm" autocomplete="off">
+        <input id="searchInput" type="search" placeholder="Search a lake, river, bay… or paste lat, lng" aria-label="Search for your water">
+        <button class="btn" type="submit">Search</button>
+        <button class="btn btn-ghost" type="button" id="locateBtn" title="Use my location">📍</button>
+      </form>
+      <ul class="search-results" id="searchResults" hidden></ul>
+      <div class="spots" id="spots" aria-label="Famous fish addresses"></div>
+      <div class="map-wrap">
+        <div id="map" role="application" aria-label="Map: click anywhere to choose your home water"></div>
+        <div class="map-hint" id="mapHint">Tap your water on the map 👇</div>
+      </div>
+      <div class="spot-line">
+        <div class="spot-name" id="spotName">No water selected yet.</div>
+        <div class="seg" role="radiogroup" aria-label="Water type" id="waterMode">
+          <button type="button" role="radio" data-mode="auto" aria-checked="true">Auto</button>
+          <button type="button" role="radio" data-mode="sea" aria-checked="false">🌊 Salt</button>
+          <button type="button" role="radio" data-mode="fresh" aria-checked="false">🏞️ Fresh</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card who" id="who" aria-labelledby="whoTitle">
+      <h2 id="whoTitle"><span class="step">2</span> What kind of fish are you?</h2>
+      <div class="fish-picker" id="fishPicker" role="radiogroup" aria-labelledby="whoTitle"></div>
+      <p class="fish-blurb" id="fishBlurb"></p>
+    </section>
+
+    <section class="card anchor" id="anchorCard" aria-labelledby="anchorTitle">
+      <div class="anchor-head">
+        <h2 id="anchorTitle"><span class="live-dot"></span> Fish News <small>Channel 0</small></h2>
+        <button class="btn" type="button" id="speakBtn">🔊 Read it to me</button>
+      </div>
+      <div class="studio">
+        <div class="bubble-speech" id="speech" aria-live="polite">
+          <p class="headline" id="headline">Choose your water and I'll read you the forecast.</p>
+          <p class="more" id="speechMore"></p>
+        </div>
+        <div class="anchor-fish" id="anchorFish" aria-hidden="true"></div>
+        <div class="desk"><span>FINN GILLESPIE · FISH NEWS</span></div>
+      </div>
+      <div class="ticker" aria-hidden="true"><div class="ticker-track" id="ticker">BREAKING: local fish still cannot read · Smartphone adoption among fish holds steady at 0% · Heron denies being a statue ·</div></div>
+    </section>
+
+    <section class="card grade" id="gradeCard" aria-labelledby="gradeTitle">
+      <div class="grade-letter" id="gradeLetter" aria-label="Swim grade">?</div>
+      <div class="grade-body">
+        <h2 id="gradeTitle">Swim grade, next 24 hours</h2>
+        <p id="gradeSummary" class="muted">Pick a spot to get graded.</p>
+        <div class="best-times" id="bestTimes"></div>
+      </div>
+    </section>
+
+    <section class="report" id="report" aria-label="Water report">
+      <article class="card metric" id="mTemp">
+        <h3>🌡️ Water temperature</h3>
+        <div class="metric-body"><p class="muted">Waiting for water.</p></div>
+      </article>
+      <article class="card metric" id="mOxygen">
+        <h3>🫧 Breathability</h3>
+        <div class="metric-body"><p class="muted">Waiting for water.</p></div>
+      </article>
+      <article class="card metric" id="mBladder">
+        <h3>🎈 Swim bladder report</h3>
+        <div class="metric-body"><p class="muted">Waiting for water.</p></div>
+      </article>
+      <article class="card metric sea-only" id="mWaves">
+        <h3>🌀 Washing Machine Index</h3>
+        <div class="metric-body"><p class="muted">Waiting for water.</p></div>
+      </article>
+      <article class="card metric sea-only" id="mCurrent">
+        <h3>➰ Currents</h3>
+        <div class="metric-body"><p class="muted">Waiting for water.</p></div>
+      </article>
+      <article class="card metric sea-only" id="mTide">
+        <h3>🌊 Tides</h3>
+        <div class="metric-body"><p class="muted">Waiting for water.</p></div>
+      </article>
+    </section>
+
+    <section class="card radar-card" id="radarCard" aria-labelledby="radarTitle">
+      <div class="card-head">
+        <h2 id="radarTitle">🦈 Predator Radar</h2>
+        <div class="threat" id="threat"></div>
+      </div>
+      <p class="muted small" id="radarNote">Real sightings from iNaturalist within 25 km, last 30 days.</p>
+      <div class="radar-wrap">
+        <canvas id="radar" aria-label="Predator radar"></canvas>
+      </div>
+      <div class="blip-detail" id="blipDetail" hidden></div>
+      <details class="sightings">
+        <summary>All sightings (<span id="sightCount">0</span>)</summary>
+        <ul id="sightList"></ul>
+      </details>
+    </section>
+
+    <section class="card hook" id="hookCard" aria-labelledby="hookTitle">
+      <h2 id="hookTitle">🎣 Hook Danger <small>the fishermen forecast</small></h2>
+      <div class="gauge-body" id="hookBody"><p class="muted">Waiting for weather.</p></div>
+    </section>
+
+    <section class="card snack" id="snackCard" aria-labelledby="snackTitle">
+      <h2 id="snackTitle">🪱 Snack Index</h2>
+      <div class="gauge-body" id="snackBody"><p class="muted">Waiting for weather.</p></div>
+    </section>
+
+    <section class="card solunar" id="solunarCard" aria-labelledby="solunarTitle">
+      <div class="almanac">
+        <h2 id="solunarTitle">The Solunar Tables</h2>
+        <p class="almanac-sub">After John Alden Knight, 1926</p>
+        <div id="solunarBody"><p>Select a body of water to compute the lunar periods.</p></div>
+      </div>
+    </section>
+
+    <section class="card timeline" id="timelineCard" aria-labelledby="timelineTitle">
+      <div class="card-head">
+        <h2 id="timelineTitle">📅 Next 72 hours</h2>
+        <div class="legend" aria-hidden="true">
+          <span>bad for you</span><i class="legend-ramp"></i><span>good for you</span>
+        </div>
+      </div>
+      <div class="tl" id="timeline"><p class="muted">Waiting for weather.</p></div>
+      <div class="tl-detail" id="tlDetail" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p class="disclaimer">Not intended for use by fish.</p>
+    <p class="credits">
+      Weather &amp; marine data: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0) ·
+      Predator sightings: <a href="https://www.inaturalist.org/" target="_blank" rel="noopener">iNaturalist</a> observers ·
+      Maps: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, CARTO, Esri ·
+      Moon: SunCalc · Solunar theory: J. A. Knight (1926)
+    </p>
+  </footer>
+
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script src="vendor/suncalc.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/fishmath.js"></script>
+  <script src="js/fishart.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/radar.js"></script>
+  <script src="js/demo-data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
