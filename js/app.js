@@ -201,33 +201,47 @@
     document.addEventListener('keydown', done, { once: true });
   }
 
-  // A pet fish follows the pointer, turning to face where it is going.
-  function initPetFish() {
-    var el = $('petFish');
-    if (REDUCED || !window.matchMedia('(pointer: fine)').matches) { el.remove(); return; }
-    var x = -100, y = -100, tx = -100, ty = -100, face = 1, seen = false, lastBubble = 0;
-    el.innerHTML = FishArt.svg(sp());
-    document.addEventListener('pointermove', function (e) { tx = e.clientX + 18; ty = e.clientY + 14; if (!seen) { seen = true; x = tx - 80; y = ty; el.style.opacity = 1; } }, { passive: true });
-    document.addEventListener('pointerleave', function () { el.style.opacity = 0; seen = false; });
-    (function loop(t) {
-      var dx = tx - x, dy = ty - y;
-      x += dx * 0.085; y += dy * 0.085;
-      if (Math.abs(dx) > 2) face = dx > 0 ? 1 : -1;
-      var tilt = Math.max(-25, Math.min(25, dy * 0.6)) * face;
-      el.style.transform = 'translate(' + (x - 24) + 'px,' + (y - 17) + 'px) scaleX(' + face + ') rotate(' + tilt + 'deg)';
-      if (seen && Math.hypot(dx, dy) > 30 && t - lastBubble > 140) {
-        lastBubble = t;
-        var b = document.createElement('span');
-        b.className = 'tap-bubble';
-        var sz = 3 + Math.random() * 5;
-        b.style.width = b.style.height = sz + 'px';
-        b.style.left = (x - 20 * face) + 'px'; b.style.top = y + 'px';
-        b.style.animationDuration = '1s';
-        b.addEventListener('animationend', function () { this.remove(); });
-        document.body.appendChild(b);
-      }
-      requestAnimationFrame(loop);
-    })(0);
+  // The mouse pointer becomes your fish (a real cursor image, so there is only
+  // one pointer), nose first, trailing a few bubbles when it moves.
+  var cursorStyle = null;
+  function setFishCursor() {
+    if (!window.matchMedia || !window.matchMedia('(pointer: fine)').matches) return;
+    cursorStyle = cursorStyle || document.head.appendChild(document.createElement('style'));
+    var svg = FishArt.svg(sp()).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="28" ');
+    var svgUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    var apply = function (url) {
+      cursorStyle.textContent = 'html, body, button, a, .chip, .fish-option, #radar, .tl-hit, .leaflet-container, .leaflet-grab, .leaflet-interactive, .leaflet-marker-icon' +
+        ' { cursor: url("' + url + '") 38 15, auto !important; } input, textarea { cursor: text !important; }';
+    };
+    var img = new Image();
+    img.onload = function () {
+      try {
+        var c = document.createElement('canvas');
+        c.width = 40; c.height = 28;
+        c.getContext('2d').drawImage(img, 0, 0, 40, 28);
+        apply(c.toDataURL('image/png'));
+      } catch (e) { apply(svgUrl); }
+    };
+    img.onerror = function () { apply(svgUrl); };
+    img.src = svgUrl;
+  }
+
+  function initBubbleTrail() {
+    if (REDUCED || !window.matchMedia('(pointer: fine)').matches) return;
+    var lx = 0, ly = 0, last = 0;
+    document.addEventListener('pointermove', function (e) {
+      var now = performance.now();
+      if (now - last < 120 || Math.hypot(e.clientX - lx, e.clientY - ly) < 24) return;
+      last = now; lx = e.clientX; ly = e.clientY;
+      var b = document.createElement('span');
+      b.className = 'tap-bubble';
+      var sz = 3 + Math.random() * 5;
+      b.style.width = b.style.height = sz + 'px';
+      b.style.left = (e.clientX - 6) + 'px'; b.style.top = (e.clientY + 4) + 'px';
+      b.style.animationDuration = '1s';
+      b.addEventListener('animationend', function () { this.remove(); });
+      document.body.appendChild(b);
+    }, { passive: true });
   }
 
   function initReveal() {
@@ -435,8 +449,7 @@
       ' Likes ' + f.tempMin + '–' + f.tempMax + ' °C, needs ' + f.doMin + ' mg/L of oxygen.';
     $('logoFish').innerHTML = FishArt.svg(f);
     $('anchorFish').innerHTML = FishArt.svg(f);
-    var pet = $('petFish');
-    if (pet) pet.innerHTML = FishArt.svg(f);
+    setFishCursor();
   }
 
   function setSpecies(k) {
@@ -1241,7 +1254,7 @@
     initReveal();
     renderPicker();
     initIntro();
-    initPetFish();
+    initBubbleTrail();
 
     var params = new URLSearchParams(location.search);
     var spot = API.store('wff.spot');
