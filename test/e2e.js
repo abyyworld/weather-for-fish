@@ -162,15 +162,15 @@ async function step(name, fn) {
       assert.match(threat, /\d+\/100/);
       // Click the strongest blip on the canvas at its projected position.
       var pos = await page.evaluate(function () {
-        var b = window.WFF.state.report.predators.blips[0], c = document.getElementById('radar').getBoundingClientRect();
-        var R = c.width / 2 - 26, r = Math.min(1, b.distanceKm / 25) * R, a = b.bearing * Math.PI / 180;
-        return { x: c.left + c.width / 2 + r * Math.sin(a), y: c.top + c.height / 2 - r * Math.cos(a), name: b.commonName };
+        var cl = window.WFF.radar.clusters.slice().sort(function (a, b) { return b.danger - a.danger; })[0];
+        var c = document.getElementById('radar').getBoundingClientRect(), k = c.width / window.WFF.radar.size;
+        return { x: c.left + cl.x * k, y: c.top + cl.y * k, name: cl.members[0].commonName };
       });
       await page.locator('#radar').scrollIntoViewIfNeeded();
       pos = await page.evaluate(function () {
-        var b = window.WFF.state.report.predators.blips[0], c = document.getElementById('radar').getBoundingClientRect();
-        var R = c.width / 2 - 26, r = Math.min(1, b.distanceKm / 25) * R, a = b.bearing * Math.PI / 180;
-        return { x: c.left + c.width / 2 + r * Math.sin(a), y: c.top + c.height / 2 - r * Math.cos(a), name: b.commonName };
+        var cl = window.WFF.radar.clusters.slice().sort(function (a, b) { return b.danger - a.danger; })[0];
+        var c = document.getElementById('radar').getBoundingClientRect(), k = c.width / window.WFF.radar.size;
+        return { x: c.left + cl.x * k, y: c.top + cl.y * k, name: cl.members[0].commonName };
       });
       await page.mouse.click(pos.x, pos.y);
       await page.waitForSelector('#blipDetail:not([hidden])');

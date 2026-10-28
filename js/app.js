@@ -761,7 +761,8 @@
       ? '<div class="photo"><img src="' + esc(b.photo) + '" alt="' + esc(b.commonName || b.name) + '" onerror="this.parentNode.textContent=\'' + b.emoji + '\'"></div>'
       : '<div class="photo">' + b.emoji + '</div>';
     el.innerHTML = photo + '<div><h4>' + esc(b.commonName || b.name) + (b.sciName ? ' <i class="muted small">' + esc(b.sciName) + '</i>' : '') + '</h4>' +
-      '<p class="meta">' + fmt(b.distanceKm) + ' km ' + b.compass + ' · seen ' + ago(b.ageDays) + (date ? ' (' + date.weekdayName.slice(0, 3) + ' ' + date.dateKey + ')' : '') + (b.obscured ? ' · location blurred by observer' : '') + '</p>' +
+      '<p class="meta">' + fmt(b.distanceKm) + ' km ' + b.compass + ' · seen ' + ago(b.ageDays) + (date ? ' (' + date.weekdayName.slice(0, 3) + ' ' + date.dateKey + ')' : '') + (b.obscured ? ' · location blurred by observer' : '') +
+        (b.clusterCount > 1 ? ' · +' + (b.clusterCount - 1) + ' more ' + esc(b.plural || b.name.toLowerCase() + 's') + ' right here' : '') + '</p>' +
       '<p>' + esc(b.blurb) + '</p>' +
       '<p class="credit">' + (b.photoAttribution ? 'Photo ' + esc(b.photoAttribution) + ' · ' : '') + (b.user ? 'Observed by ' + esc(b.user) + ' · ' : '') +
       (b.uri ? '<a href="' + esc(b.uri) + '" target="_blank" rel="noopener">View on iNaturalist ↗</a>' : '') + '</p></div>';
@@ -1161,6 +1162,11 @@
     initSearch();
     initWaterMode();
     radar = new Radar($('radar'), { onSelect: showBlip });
+    $('sonarBtn').addEventListener('click', function () {
+      var on = radar.setSound(!radar.sound);
+      this.setAttribute('aria-pressed', on ? 'true' : 'false');
+      this.textContent = on ? '🔊 Sonar on' : '🔈 Sonar off';
+    });
     $('speakBtn').addEventListener('click', speak);
     $('shippingBtn').addEventListener('click', readShipping);
     $('nrClose').addEventListener('click', closeNewsroom);
@@ -1196,5 +1202,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 
-  window.WFF = { state: state, render: render, loadDemo: loadDemo, chooseSpot: chooseSpot, setSpecies: setSpecies };
+  window.WFF = { state: state, render: render, loadDemo: loadDemo, chooseSpot: chooseSpot, setSpecies: setSpecies, get radar() { return radar; } };
 })();

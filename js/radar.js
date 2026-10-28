@@ -40,7 +40,53 @@
     this.blips = blips || [];
     this.radiusKm = radiusKm || 25;
     this.selected = null;
+    this.cluster();
     this.draw();
+  };
+
+  // Merge same-type sightings that would overlap on screen into one blip.
+  Radar.prototype.cluster = function () {
+    var self = this, out = [];
+    if (!this.size) { this.clusters = []; return; }
+    this.blips.slice().sort(function (a, b) { return b.weight - a.weight; }).forEach(function (b) {
+      var p = self.project(b), hit = null;
+      for (var i = 0; i < out.length; i++) {
+        if (out[i].key === b.key && Math.hypot(out[i].x - p.x, out[i].y - p.y) < 20) { hit = out[i]; break; }
+      }
+      if (hit) { hit.members.push(b); hit.ageDays = Math.min(hit.ageDays, b.ageDays); }
+      else out.push({ key: b.key, emoji: b.emoji, danger: b.danger, bearing: b.bearing, ageDays: b.ageDays, x: p.x, y: p.y, members: [b] });
+    });
+    this.clusters = out;
+  };
+
+  Radar.prototype.setSound = function (on) {
+    this.sound = on;
+    if (on && !this.audio) {
+      try { this.audio = new (root.AudioContext || root.webkitAudioContext)(); } catch (e) { this.sound = false; }
+    }
+    if (on) this.ping();
+    return this.sound;
+  };
+
+  // Submarine sonar: a high sine ping with a fading echo.
+  Radar.prototype.ping = function () {
+    var a = this.audio;
+    if (!a) return;
+    var t = a.currentTime, o = a.createOscillator(), g = a.createGain(), d = a.createDelay(), fb = a.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(1350, t); o.frequency.exponentialRampToValueAtTime(1250, t + 1);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.22, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.1);
+    d.delayTime.value = 0.32; fb.gain.value = 0.35;
+    o.connect(g); g.connect(a.destination); g.connect(d); d.connect(fb); fb.connect(d); d.connect(a.destination);
+    o.start(t); o.stop(t + 1.2);
+  };
+
+  Radar.prototype.blipTone = function (danger) {
+    var a = this.audio;
+    if (!a) return;
+    var t = a.currentTime, o = a.createOscillator(), g = a.createGain();
+    o.type = 'square'; o.frequency.value = 300 + 500 * danger;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.05, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + 0.14);
   };
 
   Radar.prototype.setStatus = function (text) { this.status = text; this.draw(); };
@@ -55,6 +101,7 @@
     this.canvas.width = size * dpr;
     this.canvas.height = size * dpr;
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.cluster();
     this.draw();
   };
 
@@ -117,6 +164,13 @@
     ctx.fillText('E', c + R + 12, c); ctx.fillText('W', c - R - 12, c);
 
     var sweep = this.reduced ? null : this.sweepDeg();
+    if (sweep !== null && this.sound && this.lastSweep !== undefined) {
+      var from = this.lastSweep, crossed = function (b) { return from <= sweep ? b > from && b <= sweep : b > from || b <= sweep; };
+      if (sweep < from) this.ping();
+      var self0 = this;
+      (this.clusters || []).forEach(function (c) { if (c.danger >= 0.75 && crossed(c.bearing)) self0.blipTone(c.danger); });
+    }
+    this.lastSweep = sweep === null ? undefined : sweep;
     if (sweep !== null) {
       var a = (sweep - 90) * Math.PI / 180;
       ctx.save();
@@ -136,32 +190,43 @@
       ctx.restore();
     }
 
-    // Blips, faintest first so the dangerous ones sit on top.
+    // Blips (clustered), least dangerous first so the worst sit on top.
     var self = this;
-    var list = this.blips.slice().sort(function (x, y) { return x.weight - y.weight; });
-    list.forEach(function (b) {
-      var p = self.project(b);
+    var list = (this.clusters || []).slice().sort(function (x, y) { return x.danger - y.danger; });
+    list.forEach(function (c) {
       var glow = 1;
       if (sweep !== null) {
-        var since = ((sweep - b.bearing) % 360 + 360) % 360;
+        var since = ((sweep - c.bearing) % 360 + 360) % 360;
         glow = Math.exp(-since / 140);
       }
-      var fresh = Math.pow(0.5, b.ageDays / 7);
+      var n = c.members.length;
+      var fresh = Math.pow(0.5, c.ageDays / 7);
       var alpha = 0.35 + 0.65 * Math.max(glow, 0.15) * (0.4 + 0.6 * fresh);
-      var size = 14 + 10 * b.danger;
+      var size = 16 + 10 * c.danger + Math.min(8, 3 * Math.log(n) / Math.LN2);
       if (glow > 0.6) {
         ctx.beginPath();
-        ctx.arc(p.x, p.y, size * (1.6 - glow * 0.6), 0, Math.PI * 2);
+        ctx.arc(c.x, c.y, size * (1.6 - glow * 0.6), 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(255, 120, 100,' + (0.25 * glow) + ')';
         ctx.fill();
       }
       ctx.globalAlpha = alpha;
       ctx.font = size + 'px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
-      ctx.fillText(b.emoji, p.x, p.y);
+      ctx.fillText(c.emoji, c.x, c.y);
       ctx.globalAlpha = 1;
-      if (self.selected && self.selected.id === b.id) {
+      if (n > 1) {
+        var label = '×' + n, bx = c.x + size * 0.45, by = c.y - size * 0.5;
+        ctx.font = '900 10px Nunito, system-ui, sans-serif';
+        var w = ctx.measureText(label).width + 8;
+        ctx.fillStyle = 'rgba(255, 209, 102, 0.95)';
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(bx - w / 2, by - 7, w, 14, 7); else ctx.rect(bx - w / 2, by - 7, w, 14);
+        ctx.fill();
+        ctx.fillStyle = '#2b1700';
+        ctx.fillText(label, bx, by + 0.5);
+      }
+      if (self.selected && c.members.some(function (m) { return m.id === self.selected.id; })) {
         ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 2.5;
-        ctx.beginPath(); ctx.arc(p.x, p.y, size * 0.85, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(c.x, c.y, size * 0.85, 0, Math.PI * 2); ctx.stroke();
       }
     });
 
@@ -175,15 +240,20 @@
     }
   };
 
+  // The clicked cluster's most threatening sighting, with how many it stands for.
   Radar.prototype.hit = function (e) {
     var rect = this.canvas.getBoundingClientRect();
     var x = (e.clientX - rect.left) * (this.size / rect.width), y = (e.clientY - rect.top) * (this.size / rect.height);
-    var best = null, bestD = 22;
-    for (var i = 0; i < this.blips.length; i++) {
-      var p = this.project(this.blips[i]), d = Math.hypot(p.x - x, p.y - y);
-      if (d < bestD) { bestD = d; best = this.blips[i]; }
+    var best = null, bestD = 24, cs = this.clusters || [];
+    for (var i = 0; i < cs.length; i++) {
+      var d = Math.hypot(cs[i].x - x, cs[i].y - y);
+      if (d < bestD) { bestD = d; best = cs[i]; }
     }
-    return best;
+    if (!best) return null;
+    var top = best.members[0], out = {};
+    for (var k in top) out[k] = top[k];
+    out.clusterCount = best.members.length;
+    return out;
   };
 
   Radar.prototype.handleClick = function (e) {

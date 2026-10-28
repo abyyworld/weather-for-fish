@@ -301,7 +301,8 @@ h1 { font-size: clamp(1.7rem, 4.2vw, 2.6rem); font-weight: 900; letter-spacing: 
 /* ----------------------------------------------------------------- radar */
 .threat { display: flex; align-items: center; gap: 8px; font-weight: 900; }
 .threat .score { font-size: 1.6rem; }
-.radar-wrap { max-width: 460px; margin: 8px auto 0; }
+.radar-wrap { max-width: 540px; margin: 8px auto 0; }
+#sonarBtn[aria-pressed="true"] { background: rgba(94, 234, 212, 0.25); border-color: var(--foam); }
 #radar { width: 100%; aspect-ratio: 1; display: block; cursor: crosshair; touch-action: manipulation; }
 .blip-detail {
   display: grid; grid-template-columns: 96px 1fr; gap: 12px; margin-top: 12px; padding: 12px; border-radius: 14px;
