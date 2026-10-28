@@ -38,7 +38,7 @@ async function mockApis(page, opts) {
   await page.route(/^https?:\/\//, function (route) {
     var u = new globalThis.URL(route.request().url()), host = u.hostname, q = u.searchParams;
     if (opts.offline) return route.abort('internetdisconnected');
-    if (/basemaps\.cartocdn\.com|arcgisonline\.com/.test(host)) return route.fulfill({ status: 200, contentType: 'image/png', body: PNG });
+    if (/tile\.openstreetmap\.org|arcgisonline\.com/.test(host)) return route.fulfill({ status: 200, contentType: 'image/png', body: PNG });
     if (host === 'api.open-meteo.com') {
       calls.forecast++;
       if (opts.failForecast) return json(route, { error: true, reason: 'down' }, 500);

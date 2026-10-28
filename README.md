@@ -98,6 +98,6 @@ If one API fails, the rest of the app keeps working, and the failure is reported
 
 ## Credits
 
-Weather and marine data: [Open-Meteo](https://open-meteo.com/) (CC BY 4.0). Predator sightings and photos: [iNaturalist](https://www.inaturalist.org/) observers (licences shown per photo). Maps: © OpenStreetMap contributors, CARTO, Esri. Moon and sun: [SunCalc](https://github.com/mourner/suncalc). Map library: [Leaflet](https://leafletjs.com/). Font: Nunito (OFL). Solunar theory: John Alden Knight, 1926.
+Weather and marine data: [Open-Meteo](https://open-meteo.com/) (CC BY 4.0). Predator sightings and photos: [iNaturalist](https://www.inaturalist.org/) observers (licences shown per photo). Maps: © OpenStreetMap contributors, Esri. Moon and sun: [SunCalc](https://github.com/mourner/suncalc). Map library: [Leaflet](https://leafletjs.com/). Font: Nunito (OFL). Solunar theory: John Alden Knight, 1926.
 
 **Not intended for use by fish.**

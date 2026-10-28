@@ -220,9 +220,13 @@
 
   function initMap() {
     map = L.map('map', { worldCopyJump: true, zoomControl: true }).setView([25, -30], 2);
-    var voyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd', maxZoom: 19,
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>'
+    // Keyless tiles only. OpenStreetMap needs a Referer, which file:// pages
+    // don't send, so a double-clicked index.html starts on Esri's street map.
+    var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    });
+    var street = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19, attribution: 'Esri, HERE, Garmin, © OpenStreetMap contributors'
     });
     var seafloor = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 13, attribution: 'Esri, GEBCO, NOAA, National Geographic, DeLorme, HERE, Geonames.org'
@@ -230,11 +234,14 @@
     var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 18, attribution: 'Esri, Maxar, Earthstar Geographics'
     });
-    voyager.addTo(map);
-    L.control.layers({ '🗺️ Human map': voyager, '🐋 Seafloor': seafloor, '🛰️ Satellite': satellite }, null, { position: 'topright' }).addTo(map);
+    var human = location.protocol === 'file:' ? street : osm;
+    human.addTo(map);
+    var layers = { '🗺️ Human map': human, '🐋 Seafloor': seafloor, '🛰️ Satellite': satellite };
+    layers[human === osm ? '🧭 Esri streets' : '🧭 OpenStreetMap'] = human === osm ? street : osm;
+    L.control.layers(layers, null, { position: 'topright' }).addTo(map);
 
     var tileErrors = 0, warned = false;
-    [voyager, seafloor, satellite].forEach(function (layer) {
+    [osm, street, seafloor, satellite].forEach(function (layer) {
       layer.on('tileerror', function () {
         if (++tileErrors >= 6 && !warned) {
           warned = true;
