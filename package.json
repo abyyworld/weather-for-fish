@@ -1,0 +1,11 @@
+{
+  "name": "weather-for-fish",
+  "version": "1.0.0",
+  "description": "A weather app for fish. Target audience: fish. Smartphone adoption among target audience: 0%.",
+  "private": true,
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "test:e2e": "node test/e2e.js"
+  },
+  "license": "MIT"
+}
