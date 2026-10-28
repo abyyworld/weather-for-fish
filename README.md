@@ -77,7 +77,7 @@ So we built the weather app for fish. Fish can't use it. But every number on it 
 5. **(1:25) The esoteric part.** Scroll to the Solunar Tables: John Alden Knight's 1926 theory of fish feeding times, computed from the moon's real position, with total seriousness. Then the Esoteric Almanac: press **📻 Read the Shipping Forecast**. The six pips play, then a calm voice reads *"…issued by the Fish Office on behalf of the Maritime and Codguard Agency… Predators: heron, occasionally cormorant."* Point at the moon's zodiac sign in **Ichthyomancy**.
 6. **(1:50) Close:** *"Fish can't use this. But every number on screen is real."*
 
-Extras for the Q&A: turn on **🔊 Sonar** on the radar; move the mouse (a pet fish of your chosen species follows it); try the Great Barrier Reef as a Clownfish (finally an A) and Brooks Falls as a Salmon (brown bears).
+Extras for the Q&A: turn on **🔊 Sonar** on the radar; move the mouse (a pet fish of your chosen species follows it); try the Great Barrier Reef as a Clownfish (warm water at last) and Brooks Falls as a Salmon (brown bears, if any are still awake).
 
 If the Wi-Fi dies, press **🎬 Demo mode** (or open `index.html?demo`). Everything, including the radar, runs from the bundled snapshot.
 
