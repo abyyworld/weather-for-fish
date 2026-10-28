@@ -95,7 +95,7 @@ async function newPage(browser, opts) {
     window.Date = FakeDate;
     window.__spoken = [];
     Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: {
-      speaking: false, getVoices: function () { return [{ name: 'Samantha', lang: 'en-US' }]; }, cancel: function () {},
+      speaking: false, pending: false, getVoices: function () { return [{ name: 'Samantha', lang: 'en-US' }]; }, cancel: function () {},
       speak: function (u) { window.__spoken.push({ text: u.text, pitch: u.pitch, rate: u.rate }); setTimeout(function () { if (u.onend) u.onend(); }, 50); }
     } });
     window.SpeechSynthesisUtterance = function (t) { this.text = t; };
@@ -207,11 +207,19 @@ async function step(name, fn) {
 
     await step('9. news anchor reads the top alert aloud, ending in "Blub."', async function () {
       await page.click('#speakBtn');
+      await page.waitForSelector('#newsroom.live');
+      assert.match(await page.textContent('#nrBreaking'), /FISH NEWS/);
+      assert.ok((await page.textContent('#nrHeadline')).length > 20);
+      await page.waitForTimeout(700);
+      await page.screenshot({ path: path.join(OUT, 'newsroom.png') });
+      await page.waitForFunction(function () { return window.__spoken.length >= 1; });
       var spoken = await page.evaluate(function () { return window.__spoken; });
       assert.equal(spoken.length, 1);
       assert.match(spoken[0].text, /Blub\.$/);
       assert.ok(spoken[0].pitch >= 1.5, 'high, bubbly voice');
       assert.match(spoken[0].text, /^Good (morning|afternoon|evening|night), trout of Monterey Bay\./);
+      assert.match(await page.textContent('#nrSub'), /Blub\.|\w/);
+      await page.waitForSelector('#newsroom', { state: 'hidden', timeout: 8000 });
     });
 
     await step('esoteric almanac: Shipping Forecast (with the pips), ichthyomancy, folklore', async function () {

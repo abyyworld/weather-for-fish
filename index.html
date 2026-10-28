@@ -186,6 +186,26 @@
     </section>
   </main>
 
+  <div class="newsroom" id="newsroom" hidden role="dialog" aria-modal="true" aria-label="Fish News broadcast">
+    <div class="nr-rays" aria-hidden="true"></div>
+    <div class="nr-top">
+      <span class="nr-live">● LIVE</span>
+      <span class="nr-bug">FISH NEWS <small>CH 0</small></span>
+      <span class="nr-clock" id="nrClock"></span>
+      <button class="nr-close" type="button" id="nrClose" aria-label="Close broadcast">✕</button>
+    </div>
+    <div class="nr-stage">
+      <div class="nr-fish" id="nrFish" aria-hidden="true"></div>
+      <div class="nr-desk" aria-hidden="true"><span>FINN GILLESPIE</span><small>Senior Correspondent, Channel 0</small></div>
+    </div>
+    <div class="nr-lower">
+      <div class="nr-breaking" id="nrBreaking">BREAKING FISH NEWS</div>
+      <div class="nr-headline" id="nrHeadline"></div>
+      <div class="nr-sub" id="nrSub" aria-live="polite"></div>
+    </div>
+    <div class="nr-ticker" aria-hidden="true"><div class="nr-ticker-track" id="nrTicker"></div></div>
+  </div>
+
   <footer class="footer">
     <p class="disclaimer">Not intended for use by fish.</p>
     <p class="credits">

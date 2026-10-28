@@ -1040,24 +1040,113 @@
     u.onend = u.onerror = finish;
     if (opts.onBoundary) u.onboundary = opts.onBoundary;
     if (opts.onStart) u.onstart = opts.onStart;
-    window.speechSynthesis.cancel();
+    // Chrome can drop an utterance spoken straight after cancel(), so only cancel when needed.
+    if (window.speechSynthesis.speaking || window.speechSynthesis.pending) window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
     setTimeout(finish, 2000 + text.length * 90 / (opts.rate || 1));
     return u;
   }
 
+  function speechText(t) {
+    return t.replace(/°C/g, 'degrees').replace(/mg\/L/g, 'milligrams per litre').replace(/ km /g, ' kilometres ');
+  }
+
+  // A three-note news sting.
+  function sting() {
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      var t = audio.currentTime + 0.05;
+      [[392, 0], [523.25, 0.16], [783.99, 0.32], [1046.5, 0.32]].forEach(function (n) {
+        var o = audio.createOscillator(), g = audio.createGain();
+        o.type = 'triangle'; o.frequency.value = n[0];
+        g.gain.setValueAtTime(0.0001, t + n[1]);
+        g.gain.exponentialRampToValueAtTime(0.2, t + n[1] + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + n[1] + (n[1] > 0.3 ? 0.9 : 0.18));
+        o.connect(g); g.connect(audio.destination);
+        o.start(t + n[1]); o.stop(t + n[1] + 1);
+      });
+    } catch (e) { /* silent news */ }
+  }
+
+  var newsroom = { open: false, timer: null, clockTimer: null };
+
+  function closeNewsroom() {
+    if (!newsroom.open) return;
+    newsroom.open = false;
+    clearInterval(newsroom.timer); clearInterval(newsroom.clockTimer);
+    stopSpeech();
+    var el = $('newsroom');
+    el.classList.add('leaving');
+    setTimeout(function () { el.hidden = true; el.classList.remove('leaving', 'live'); }, 450);
+    $('anchorFish').classList.remove('talking');
+    $('speakBtn').textContent = '🔊 Read it to me';
+  }
+
+  // Full-screen broadcast with subtitles that follow the voice.
   function speak() {
     var r = state.report;
     if (!r) { toast('Pick some water first. I need something to read.'); return; }
-    var fish = $('anchorFish'), btn = $('speakBtn');
-    if (fish.classList.contains('talking')) { stopSpeech(); return; }
-    fish.classList.add('talking');
-    btn.textContent = '⏹ Stop';
-    say(r.broadcast.text, { pitch: 1.9, rate: 1.08 }, function () {
-      fish.classList.remove('talking');
-      btn.textContent = '🔊 Read it to me';
-      blub();
-    });
+    if (newsroom.open) { closeNewsroom(); return; }
+    var b = r.broadcast, el = $('newsroom'), fish = $('nrFish');
+    newsroom.open = true;
+    fish.innerHTML = FishArt.svg(sp());
+    fish.className = 'nr-fish talking';
+    $('nrHeadline').textContent = b.icon + ' ' + b.headline;
+    $('nrBreaking').textContent = b.kind === 'clear' ? 'FISH NEWS TONIGHT' : 'BREAKING FISH NEWS';
+    var items = b.alerts.map(function (a) { return a.icon + ' ' + a.text; });
+    if (r.shipping) items.push('📻 ' + r.shipping.parts.area + ': ' + r.shipping.parts.wind + ' ' + r.shipping.parts.weather);
+    if (r.oracle) items.push(r.oracle.sign.symbol + ' The Moon is in ' + r.oracle.sign.name);
+    items.push('Smartphone adoption among fish holds steady at 0%');
+    $('nrTicker').textContent = items.join('   ·   ') + '   ·   ';
+    var tick = function () { $('nrClock').textContent = (r.place || 'Unnamed water') + ' · ' + clock(now(), r); };
+    tick(); newsroom.clockTimer = setInterval(tick, 10000);
+    el.hidden = false;
+    void el.offsetWidth;
+    el.classList.add('live');
+    $('anchorFish').classList.add('talking');
+    $('speakBtn').textContent = '⏹ Stop';
+
+    var lines = b.lines.map(speechText), starts = [], pos = 0;
+    lines.forEach(function (l) { starts.push(pos); pos += l.length + 1; });
+    var text = lines.join(' '), current = -1, boundaries = false;
+    function showLine(i) {
+      if (i === current || i >= lines.length) return;
+      current = i;
+      $('nrSub').innerHTML = '<span>' + esc(b.lines[i]) + '</span>';
+      retrigger($('nrSub'), 'pop');
+    }
+    function chomp() {
+      fish.classList.remove('chomp'); void fish.offsetWidth; fish.classList.add('chomp');
+    }
+    showLine(0);
+    sting();
+    setTimeout(function () {
+      if (!newsroom.open) return;
+      var t0 = Date.now(), rate = 1.08;
+      // Fallback pacing if the voice engine sends no word boundaries.
+      newsroom.timer = setInterval(function () {
+        if (boundaries) return;
+        var chars = (Date.now() - t0) / 1000 * 14 * rate, i = 0;
+        while (i + 1 < starts.length && starts[i + 1] <= chars) i++;
+        showLine(i);
+      }, 200);
+      say(text, {
+        pitch: 1.9, rate: rate,
+        onBoundary: function (e) {
+          if (e.name && e.name !== 'word') return;
+          if (!boundaries) { boundaries = true; fish.classList.remove('talking'); }
+          chomp();
+          var i = 0;
+          while (i + 1 < starts.length && starts[i + 1] <= e.charIndex) i++;
+          showLine(i);
+        }
+      }, function () {
+        blub();
+        showLine(lines.length - 1);
+        fish.classList.remove('talking');
+        setTimeout(closeNewsroom, 2200);
+      });
+    }, 1100);
   }
 
   // ------------------------------------------------------------------ boot
@@ -1074,6 +1163,9 @@
     radar = new Radar($('radar'), { onSelect: showBlip });
     $('speakBtn').addEventListener('click', speak);
     $('shippingBtn').addEventListener('click', readShipping);
+    $('nrClose').addEventListener('click', closeNewsroom);
+    $('newsroom').addEventListener('click', function (e) { if (e.target === this) closeNewsroom(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeNewsroom(); });
     var stars = document.querySelector('.oracle .stars');
     for (var si = 0; si < 26; si++) {
       var st = document.createElement('i');

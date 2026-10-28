@@ -517,3 +517,47 @@ h1 { font-size: clamp(1.7rem, 4.2vw, 2.6rem); font-weight: 900; letter-spacing: 
 .folklore .detail { color: #3c2f1f; }
 .elevator-title { margin: 12px 0 0; font-size: 1rem; }
 @media (prefers-reduced-motion: reduce) { .stars i, .oracle .sign, .radio.on-air .radio-dial i { animation: none !important; } }
+
+/* --------------------------------------------------------------- newsroom */
+.newsroom {
+  position: fixed; inset: 0; z-index: 4000; overflow: hidden; color: #fff;
+  background: radial-gradient(90% 70% at 30% 60%, #0f5f87, #062a45 55%, #020d1a);
+  display: grid; grid-template-rows: auto 1fr auto auto;
+  opacity: 0; transform: scale(1.04); transition: opacity 0.4s ease, transform 0.5s cubic-bezier(0.2, 0.9, 0.2, 1.1);
+}
+.newsroom.live { opacity: 1; transform: none; }
+.newsroom.leaving { opacity: 0; transform: scale(0.98); }
+.nr-rays { position: absolute; inset: -20%; background: repeating-conic-gradient(from 0deg at 30% 120%, rgba(255, 255, 255, 0.06) 0 4deg, transparent 4deg 12deg); animation: spinning 60s linear infinite; pointer-events: none; }
+.nr-top { position: relative; display: flex; align-items: center; gap: 14px; padding: 18px 26px; font-weight: 900; }
+.nr-live { background: #e5262b; padding: 4px 12px; border-radius: 6px; letter-spacing: 0.1em; animation: blink 1.2s steps(2) infinite; }
+.nr-bug { letter-spacing: 0.14em; font-size: 1.1rem; }
+.nr-bug small { color: var(--accent); }
+.nr-clock { margin-left: auto; font-size: 1rem; color: var(--ink-2); }
+.nr-close { border: 0; background: rgba(255, 255, 255, 0.14); color: #fff; width: 40px; height: 40px; border-radius: 50%; font-size: 1.1rem; cursor: pointer; }
+.nr-stage { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; min-height: 0; }
+.nr-fish { width: min(44vw, 520px); animation: bob 2.6s ease-in-out infinite; filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.45)); margin-bottom: -2vh; z-index: 1; }
+.nr-fish svg { width: 100%; height: auto; display: block; }
+.nr-fish .fish-mouth { transform-origin: 185px 74px; transition: transform 0.08s; }
+.nr-fish.talking .fish-mouth { animation: talk 0.18s ease-in-out infinite alternate; }
+.nr-fish.chomp .fish-mouth { animation: chomp 0.16s ease-out; }
+@keyframes chomp { 0% { transform: scale(1.5, 3.6); } 100% { transform: scale(1, 1); } }
+.nr-desk { position: relative; z-index: 2; width: min(70vw, 760px); padding: 12px 18px; text-align: center; border-radius: 14px 14px 0 0;
+  background: linear-gradient(180deg, #ff9d2e, #e57712); color: #3a1c00; border-top: 4px solid #ffd08a; }
+.nr-desk span { display: block; font-weight: 900; letter-spacing: 0.2em; }
+.nr-desk small { font-weight: 800; opacity: 0.8; }
+.nr-lower { position: relative; z-index: 3; padding: 0 4vw 18px; }
+.nr-breaking {
+  display: inline-block; background: #e5262b; color: #fff; font-weight: 900; letter-spacing: 0.12em; padding: 6px 16px; font-size: clamp(0.9rem, 1.6vw, 1.2rem);
+  transform: translateX(-120%); transition: transform 0.6s cubic-bezier(0.2, 1.2, 0.3, 1) 0.15s;
+}
+.newsroom.live .nr-breaking { transform: none; }
+.nr-headline {
+  background: #fff; color: #0d2236; font-weight: 900; font-size: clamp(1.2rem, 2.6vw, 2rem); line-height: 1.2; padding: 14px 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); clip-path: inset(0 100% 0 0); transition: clip-path 0.8s cubic-bezier(0.6, 0, 0.2, 1) 0.4s;
+}
+.newsroom.live .nr-headline { clip-path: inset(0 0 0 0); }
+.nr-sub { margin-top: 12px; min-height: 3.2em; font-size: clamp(1rem, 1.9vw, 1.45rem); font-weight: 800; text-align: center; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7); }
+.nr-sub span { background: rgba(0, 0, 0, 0.55); padding: 4px 12px; border-radius: 8px; box-decoration-break: clone; -webkit-box-decoration-break: clone; line-height: 1.7; }
+.nr-ticker { background: #ffd166; color: #2b1700; font-weight: 900; white-space: nowrap; overflow: hidden; padding: 10px 0; font-size: 1.05rem; }
+.nr-ticker-track { display: inline-block; padding-left: 100%; animation: ticker 40s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .nr-rays, .nr-fish, .nr-ticker-track, .nr-live { animation: none !important; } }
