@@ -207,23 +207,11 @@
   function setFishCursor() {
     if (!window.matchMedia || !window.matchMedia('(pointer: fine)').matches) return;
     cursorStyle = cursorStyle || document.head.appendChild(document.createElement('style'));
-    var svg = FishArt.svg(sp()).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="28" ');
-    var svgUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-    var apply = function (url) {
-      cursorStyle.textContent = 'html, body, button, a, .chip, .fish-option, #radar, .tl-hit, .leaflet-container, .leaflet-grab, .leaflet-interactive, .leaflet-marker-icon' +
-        ' { cursor: url("' + url + '") 38 15, auto !important; } input, textarea { cursor: text !important; }';
-    };
-    var img = new Image();
-    img.onload = function () {
-      try {
-        var c = document.createElement('canvas');
-        c.width = 40; c.height = 28;
-        c.getContext('2d').drawImage(img, 0, 0, 40, 28);
-        apply(c.toDataURL('image/png'));
-      } catch (e) { apply(svgUrl); }
-    };
-    img.onerror = function () { apply(svgUrl); };
-    img.src = svgUrl;
+    // Prebuilt image files (img/cursors/*.png): no canvas, so privacy-hardened
+    // browsers cannot blank it, and "auto" is the fallback if it fails to load.
+    var url = 'img/cursors/' + state.species + '.png';
+    cursorStyle.textContent = 'html, body, button, a, .chip, .fish-option, #radar, .tl-hit, .leaflet-container, .leaflet-grab, .leaflet-interactive, .leaflet-marker-icon' +
+      ' { cursor: url("' + url + '") 38 15, auto !important; } input, textarea { cursor: text !important; }';
   }
 
   function initBubbleTrail() {
