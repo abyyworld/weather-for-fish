@@ -68,6 +68,10 @@ So we built the weather app for fish. Fish can't use it. But every number on it 
 - **Solunar tables:** moon altitude sampled every 10 minutes and refined by golden-section search (transits) and bisection (rise and set), checked against SunCalc to within 3 minutes in the tests. Southern-hemisphere users get the mirrored moon emoji, because that's how the moon looks from there.
 - **Time zones:** Open-Meteo returns local wall-clock times without an offset. We parse the date and time parts ourselves and apply `utc_offset_seconds`, so a judge in a different time zone sees the fish's local time. A test runs the parser under four different `TZ` settings to prove it.
 
+## Presentation
+
+The pitch deck is [`presentation/Weather-for-Fish.pptx`](presentation/Weather-for-Fish.pptx): 11 slides with the demo video embedded, transitions, click-to-reveal punchlines, speaker notes and a QR code to the live site. Present it with PowerPoint (desktop or free PowerPoint for the web via OneDrive); Google Slides drops the video and most animations.
+
 ## Demo script (about 2 minutes)
 
 1. **(0:00) Open on the nearest water.** Search for the lake, river or coast nearest the venue, or click it on the map. *"This is a weather app. The target audience is fish. Smartphone adoption among our target audience is 0%."*
